@@ -1,0 +1,290 @@
+  <section class="module" id="module-3" style="background: var(--color-bg-warm)">
+    <div class="module-content">
+      <header class="module-header animate-in">
+        <span class="module-number">03</span>
+        <h1 class="module-title">The shipping container</h1>
+        <p class="module-subtitle">Why the agent talks to a translator instead of talking to the video system directly.</p>
+      </header>
+
+      <div class="module-body">
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">A detour that looks like a mistake</h2>
+          <p>The agent needs footage. The video system has an <span class="term" data-definition="An API is a set of addresses a program can call to ask another program for something — the difference between a website you read and a service other software talks to.">API</span> that serves footage. So why is there a whole extra server in between?</p>
+
+          <div class="pattern-cards">
+            <div class="pattern-card" style="border-top: 3px solid var(--color-error)">
+              <div class="pattern-icon" style="background: var(--color-error)">🔌</div>
+              <h4 class="pattern-title">Direct wiring</h4>
+              <p class="pattern-desc">Agent calls the video API itself. Fewer moving parts — but every new client rebuilds the same knowledge, and only this agent can use it.</p>
+            </div>
+            <div class="pattern-card" style="border-top: 3px solid var(--color-success)">
+              <div class="pattern-icon" style="background: var(--color-success)">📦</div>
+              <h4 class="pattern-title">A standard container</h4>
+              <p class="pattern-desc">The tools are described once, in a shape any AI client understands. This agent uses them. So could a different one, tomorrow, with no new code.</p>
+            </div>
+          </div>
+
+          <p>Before shipping containers, every cargo was loaded by hand in whatever shape it came in. The container did not make ships faster — it made <em>any</em> ship able to carry <em>any</em> cargo.</p>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">📦</div>
+            <div class="callout-content">
+              <strong class="callout-title">MCP</strong>
+              <p><span class="term" data-definition="MCP stands for Model Context Protocol — an agreed format for describing tools to an AI, so any AI client can use any tool server without custom glue code.">MCP</span> is that agreed shape. The tool server in this project speaks it, which is why the tools are not locked to this one agent.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Listen in on one search</h2>
+          <p>This is the actual back-and-forth behind "find a red car". Four parties, seven messages, about a second of real time.</p>
+
+          <div class="chat-window animate-in" id="chat-module3">
+            <div class="chat-messages">
+              <div class="chat-message" data-msg="0" data-sender="agent" style="display:none">
+                <div class="chat-avatar" style="background: var(--color-actor-1)">A</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender" style="color: var(--color-actor-1)">Agent</span>
+                  <p>Running <code>vss_search_video</code>. Query: "a red car". Limit 12.</p>
+                </div>
+              </div>
+              <div class="chat-message" data-msg="1" data-sender="mcp" style="display:none">
+                <div class="chat-avatar" style="background: var(--color-actor-2)">M</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender" style="color: var(--color-actor-2)">MCP tool server</span>
+                  <p>Before I search — which videos can actually be searched? Some may not be indexed yet.</p>
+                </div>
+              </div>
+              <div class="chat-message" data-msg="2" data-sender="vss" style="display:none">
+                <div class="chat-avatar" style="background: var(--color-actor-3)">V</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender" style="color: var(--color-actor-3)">VSS</span>
+                  <p>8 videos. All 8 indexed.</p>
+                </div>
+              </div>
+              <div class="chat-message" data-msg="3" data-sender="mcp" style="display:none">
+                <div class="chat-avatar" style="background: var(--color-actor-2)">M</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender" style="color: var(--color-actor-2)">MCP tool server</span>
+                  <p>Good. Now: closest 12 segments to "a red car", across all of them.</p>
+                </div>
+              </div>
+              <div class="chat-message" data-msg="4" data-sender="retriever" style="display:none">
+                <div class="chat-avatar" style="background: var(--color-actor-4)">R</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender" style="color: var(--color-actor-4)">Retriever</span>
+                  <p>12 segments. Top hit: <code>car-detection.mp4</code>, 0:16 to 0:24, score 0.35.</p>
+                </div>
+              </div>
+              <div class="chat-message" data-msg="5" data-sender="mcp" style="display:none">
+                <div class="chat-avatar" style="background: var(--color-actor-2)">M</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender" style="color: var(--color-actor-2)">MCP tool server</span>
+                  <p>Those are raw IDs. Let me attach the real filenames and tidy the timestamps before anyone sees them.</p>
+                </div>
+              </div>
+              <div class="chat-message" data-msg="6" data-sender="agent" style="display:none">
+                <div class="chat-avatar" style="background: var(--color-actor-1)">A</div>
+                <div class="chat-bubble">
+                  <span class="chat-sender" style="color: var(--color-actor-1)">Agent</span>
+                  <p>Twelve candidates. I do not trust them yet — I am going to look at the top three myself.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-typing" id="chat-module3-typing" style="display:none">
+              <div class="chat-avatar" id="chat-module3-typing-avatar">?</div>
+              <div class="chat-typing-dots">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+            </div>
+
+            <div class="chat-controls">
+              <button class="btn chat-next-btn">Next Message</button>
+              <button class="btn chat-all-btn">Play All</button>
+              <button class="btn chat-reset-btn">Replay</button>
+              <span class="chat-progress"></span>
+            </div>
+          </div>
+
+          <p>Note message two. Nobody asked the tool server to check what was indexed — it does that on its own, because an answer of "nothing found" means something very different if half the library was never searchable.</p>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Declaring a tool</h2>
+          <p>One <span class="term" data-definition="Called a decorator in Python: a line beginning with @ placed above a function that adds behaviour to it — here, registering it as an AI-callable tool.">marker</span> above a function turns it into something an AI can call. That is the whole ceremony.</p>
+
+          <div class="translation-block animate-in">
+            <div class="translation-code">
+              <span class="translation-label">CODE</span>
+              <pre><code>
+<span class="code-line">    <span class="code-operator">@mcp.tool</span></span>
+<span class="code-line">    <span class="code-keyword">async def</span> <span class="code-function">vss_search_within_video</span>(</span>
+<span class="code-line">        video_id: <span class="code-keyword">str</span>,</span>
+<span class="code-line">        query: <span class="code-keyword">str</span>,</span>
+<span class="code-line">        within_last: <span class="code-keyword">int</span> | <span class="code-keyword">None</span> = <span class="code-keyword">None</span>,</span>
+<span class="code-line">        within_last_unit: <span class="code-keyword">str</span> | <span class="code-keyword">None</span> = <span class="code-keyword">None</span>,</span>
+<span class="code-line">    ) -&gt; <span class="code-keyword">dict</span>[<span class="code-keyword">str</span>, Any]:</span>
+<span class="code-line">        <span class="code-comment">"""Find moments inside one specific video.</span></span>
+              </code></pre>
+            </div>
+            <div class="translation-english">
+              <span class="translation-label">PLAIN ENGLISH</span>
+              <div class="translation-lines">
+                <p class="tl">This marker is the whole registration. It says: publish the function below as a tool.</p>
+                <p class="tl"><code><span class="term" data-definition="Async lets a program pause a slow job — like waiting for a reply over the network — and get on with other work meanwhile, instead of sitting frozen until it finishes.">async</span></code> means this can pause while waiting for the network without freezing everything else.</p>
+                <p class="tl">Which video to look in.</p>
+                <p class="tl">What to look for.</p>
+                <p class="tl">Optionally, how far back to look — a number...</p>
+                <p class="tl">...and its unit. Split in two on purpose, so the model never has to do date arithmetic.</p>
+                <p class="tl">What comes back: a <span class="term" data-definition="A dictionary (or dict) is a bundle of labelled values — name: Ana, age: 31. You look things up by their label rather than their position.">dictionary</span>, a bundle of labelled values.</p>
+                <p class="tl">And this description is what the AI reads to decide whether to call it — the job advert again.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">📅</div>
+            <div class="callout-content">
+              <strong class="callout-title">Never let the model do arithmetic it can fake</strong>
+              <p>Asked for "since Tuesday", a small model will confidently invent a date — and it will be wrong roughly as often as it is right. So the tool takes <em>"2"</em> and <em>"days"</em> separately and works the date out in ordinary code. Give models judgement, not sums.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Everything on the wire is a labelled envelope</h2>
+          <p>Coming back the other way — agent to browser — every single message has a type on the front. Steps, words, clips, errors, all the same shape.</p>
+
+          <div class="translation-block animate-in">
+            <div class="translation-code">
+              <span class="translation-label">CODE</span>
+              <pre><code>
+<span class="code-line"><span class="code-keyword">def</span> <span class="code-function">event</span>(kind: <span class="code-keyword">str</span>, **payload: Any) -&gt; <span class="code-keyword">dict</span>[<span class="code-keyword">str</span>, Any]:</span>
+<span class="code-line">    <span class="code-comment">"""Build an SSE event body."""</span></span>
+<span class="code-line"></span>
+<span class="code-line">    <span class="code-keyword">return</span> {<span class="code-string">"type"</span>: kind, **payload}</span>
+              </code></pre>
+            </div>
+            <div class="translation-english">
+              <span class="translation-label">PLAIN ENGLISH</span>
+              <div class="translation-lines">
+                <p class="tl">Make a message. Give me a label, plus whatever else belongs in it.</p>
+                <p class="tl"><span class="term" data-definition="Server-Sent Events: a way for a server to hold a connection open and push updates to the browser as they happen, rather than answering once and disconnecting.">SSE</span> just means the server can keep sending as things happen, instead of replying once and hanging up.</p>
+                <p class="tl">&nbsp;</p>
+                <p class="tl">Put the label on the front, then everything else after it. Four lines, and now the browser can sort every arrival by looking at one field.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="badge-list">
+            <div class="badge-item">
+              <code class="badge-code">step</code>
+              <span class="badge-desc">A tool started or finished. This is what fills the "Insights" panel with timings.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">token</code>
+              <span class="badge-desc">One fragment of the written answer. Hundreds of these per reply.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">clips</code>
+              <span class="badge-desc">The results grid. Sent once, when the search finishes.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">ask</code>
+              <span class="badge-desc">The agent has stopped and needs the operator to answer something before it can continue.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">error</code>
+              <span class="badge-desc">Something failed. Shown in the thread rather than swallowed.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Check yourself</h2>
+
+          <div class="quiz-container" id="quiz-module3">
+            <div class="quiz-question-block"
+                 data-correct="opt-reuse"
+                 data-explanation-right="Exactly. The cost is one extra service; the payoff is that the tools are not welded to one client. That is the same trade the shipping container makes."
+                 data-explanation-wrong="Speed is not the reason — the extra hop makes it very slightly slower. Think about who else might want to use these tools.">
+              <h3 class="quiz-question">A colleague says the MCP server is pointless indirection. What is the strongest argument back?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-fast" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>It makes searches faster by caching results</span>
+                </button>
+                <button class="quiz-option" data-value="opt-reuse" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The tools are described in a standard shape, so any AI client can use them — not just this agent</span>
+                </button>
+                <button class="quiz-option" data-value="opt-secure" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>It is the only way to keep the video system credentials secret</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-split"
+                 data-explanation-right="Right. Two separate blanks, filled in with the words the person actually said, and the date computed in ordinary code afterwards. Reliable every time."
+                 data-explanation-wrong="Careful — that hands the date calculation back to the model. It will answer confidently and be wrong often, and a wrong date does not look like an error. It looks like an empty result.">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>You are designing a new tool that needs a time range. You are about to describe its inputs to an AI assistant.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">Which design holds up best?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-iso" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>One field: a proper date, which the model works out from what the user said</span>
+                </button>
+                <button class="quiz-option" data-value="opt-split" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Two fields: a number and a unit, passed through as the user said them</span>
+                </button>
+                <button class="quiz-option" data-value="opt-free" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>One free-text field, and the tool tries to interpret whatever arrives</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-type"
+                 data-explanation-right="Yes. Because every message is labelled, adding a new kind is additive — old clients ignore what they do not recognise instead of crashing."
+                 data-explanation-wrong="Have another look at how messages are built. Each one carries a label on the front, and the browser sorts on that label alone.">
+              <h3 class="quiz-question">You want the agent to send live progress percentages during a long job. What makes that a small change rather than a big one?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-type" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Every message already carries a type label, so a new type slots in and old code ignores it</span>
+                </button>
+                <button class="quiz-option" data-value="opt-poll" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The browser can poll a second address for progress</span>
+                </button>
+                <button class="quiz-option" data-value="opt-model" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The model can be asked to report its own progress as it works</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+            <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>

@@ -1,0 +1,269 @@
+  <section class="module" id="module-1" style="background: var(--color-bg-warm)">
+    <div class="module-content">
+      <header class="module-header animate-in">
+        <span class="module-number">01</span>
+        <h1 class="module-title">You type a sentence. Twelve clips come back.</h1>
+        <p class="module-subtitle">What this thing is, and the journey your question takes after you press Enter.</p>
+      </header>
+
+      <div class="module-body">
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The problem it solves</h2>
+          <p>Somebody has forty hours of warehouse camera footage and one question: <em>did anyone walk into the loading bay without a hard hat?</em></p>
+          <p>Watching forty hours is not an option. This software lets them type the question instead.</p>
+
+          <div class="icon-rows stagger-children">
+            <div class="icon-row animate-in">
+              <div class="icon-circle" style="background: var(--color-actor-1)">🎥</div>
+              <div>
+                <strong>Video goes in</strong>
+                <p>Upload footage. The system chops it into short segments and works out what each one looks like — a step called <span class="term" data-definition="Indexing means preparing content in advance so it can be searched instantly later — like the index at the back of a book, built once so nobody has to reread every page.">indexing</span>.</p>
+              </div>
+            </div>
+            <div class="icon-row animate-in">
+              <div class="icon-circle" style="background: var(--color-actor-2)">💬</div>
+              <div>
+                <strong>A sentence goes in</strong>
+                <p>You type what you are looking for, in plain English. No filters, no timestamps, no query language.</p>
+              </div>
+            </div>
+            <div class="icon-row animate-in">
+              <div class="icon-circle" style="background: var(--color-actor-3)">📎</div>
+              <div>
+                <strong>Clips come out</strong>
+                <p>Playable moments with times attached — and a note saying whether a second reviewer agreed.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The relay race</h2>
+          <p>Your question is a baton. Five runners carry it, and each one does exactly one leg before handing off.</p>
+          <p>Press <strong>Next Step</strong> and watch it travel.</p>
+
+          <div class="flow-animation animate-in" data-steps='[
+            {"highlight":"flow-actor-1","label":"You type: find a red car"},
+            {"highlight":"flow-actor-2","label":"The browser hands the sentence to the agent","packet":true,"from":"actor-1","to":"actor-2"},
+            {"highlight":"flow-actor-3","label":"The agent asks the model one question: what should I do about this?","packet":true,"from":"actor-2","to":"actor-3"},
+            {"highlight":"flow-actor-3","label":"The model answers with a tool call, not with prose"},
+            {"highlight":"flow-actor-4","label":"The agent runs that tool on the MCP tool server","packet":true,"from":"actor-2","to":"actor-4"},
+            {"highlight":"flow-actor-5","label":"The tool asks VSS for moments that look like a red car","packet":true,"from":"actor-4","to":"actor-5"},
+            {"highlight":"flow-actor-4","label":"Twelve candidate segments come back, ranked","packet":true,"from":"actor-5","to":"actor-4"},
+            {"highlight":"flow-actor-2","label":"The agent shows the best frames to the vision model and asks: is this really a red car?"},
+            {"highlight":"flow-actor-1","label":"The answer streams back to you one word at a time","packet":true,"from":"actor-2","to":"actor-1"}
+          ]'>
+            <div class="flow-actors">
+              <div class="flow-actor" id="flow-actor-1">
+                <div class="flow-actor-icon">🧑</div>
+                <span>You</span>
+              </div>
+              <div class="flow-actor" id="flow-actor-2">
+                <div class="flow-actor-icon">🧠</div>
+                <span>Agent</span>
+              </div>
+              <div class="flow-actor" id="flow-actor-3">
+                <div class="flow-actor-icon">🤖</div>
+                <span>Model</span>
+              </div>
+              <div class="flow-actor" id="flow-actor-4">
+                <div class="flow-actor-icon">🔧</div>
+                <span>Tools</span>
+              </div>
+              <div class="flow-actor" id="flow-actor-5">
+                <div class="flow-actor-icon">🎞️</div>
+                <span>Footage</span>
+              </div>
+            </div>
+
+            <div class="flow-packet" id="flow-packet"></div>
+
+            <div class="flow-step-label" id="flow-label">Click "Next Step" to begin</div>
+
+            <div class="flow-controls">
+              <button class="btn flow-next-btn">Next Step</button>
+              <button class="btn flow-reset-btn">Restart</button>
+              <span class="flow-progress"></span>
+            </div>
+          </div>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+              <strong class="callout-title">The model does not search anything</strong>
+              <p>Notice runner three. The <span class="term" data-definition="A model (or LLM, large language model) is the AI that reads and writes text. It has no access to your files or the internet by itself — it can only read what you send it and write a reply.">model</span> never touches the footage. It reads your sentence and picks which <span class="term" data-definition="A tool is one specific job you let an AI trigger — search, send an email, look up an order. The AI cannot do anything you have not given it a tool for.">tool</span> to run. All the actual searching happens somewhere else entirely.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Leg one, in real code</h2>
+          <p>This is the actual <span class="term" data-definition="A function is a named chunk of code you can run on demand, usually taking some input and handing something back. The reusable verb of programming.">function</span> that carries your question out of the browser. Seven lines.</p>
+
+          <div class="translation-block animate-in">
+            <div class="translation-code">
+              <span class="translation-label">CODE</span>
+              <pre><code>
+<span class="code-line"><span class="code-keyword">export async function</span> <span class="code-function">streamChat</span>(body, onEvent, signal) {</span>
+<span class="code-line">  <span class="code-keyword">const</span> response = <span class="code-keyword">await</span> <span class="code-function">fetch</span>(<span class="code-string">"/api/chat"</span>, {</span>
+<span class="code-line">    <span class="code-property">method</span>: <span class="code-string">"POST"</span>,</span>
+<span class="code-line">    <span class="code-property">headers</span>: { <span class="code-string">"Content-Type"</span>: <span class="code-string">"application/json"</span> },</span>
+<span class="code-line">    <span class="code-property">body</span>: JSON.<span class="code-function">stringify</span>(body),</span>
+<span class="code-line">    signal,</span>
+<span class="code-line">  });</span>
+              </code></pre>
+            </div>
+            <div class="translation-english">
+              <span class="translation-label">PLAIN ENGLISH</span>
+              <div class="translation-lines">
+                <p class="tl">Define a job called <code>streamChat</code>. It takes your message, plus a way to report each piece of the reply as it arrives.</p>
+                <p class="tl">Knock on the door at <code>/api/chat</code> and wait. That address is the agent.</p>
+                <p class="tl">We are <em>sending</em> something, not just asking for a page. That is what POST means.</p>
+                <p class="tl">Tell the agent the parcel is written in JSON, so it knows how to unwrap it.</p>
+                <p class="tl">Pack your message, the video you attached, and the recent conversation into that parcel.</p>
+                <p class="tl">Include a rip-cord. If you hit Stop, this is what cancels the whole thing mid-flight.</p>
+                <p class="tl">Send it.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="badge-list">
+            <div class="badge-item">
+              <code class="badge-code">POST</code>
+              <span class="badge-desc">Sending data to a server, rather than just requesting a page. Posting a letter, not reading a noticeboard.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">JSON</code>
+              <span class="badge-desc">A plain-text way of writing structured data that both sides agree on. Almost every service on the internet talks in it.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">/api/chat</code>
+              <span class="badge-desc">An endpoint — one specific address on the agent that handles one specific job.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Why the answer arrives in dribs and drabs</h2>
+          <p>The <span class="term" data-definition="The agent is the program in the middle: it takes your message, asks the AI what to do, runs the chosen tool, and reports back. The AI is one part of it, not the whole thing.">agent</span> does not wait until it has the whole answer. It <span class="term" data-definition="Streaming means sending a reply piece by piece as it is produced, instead of waiting until it is finished and sending it all at once.">streams</span> each word the moment the model produces it.</p>
+
+          <div class="step-cards stagger-children">
+            <div class="step-card animate-in">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <strong>Without streaming: 15 seconds of nothing</strong>
+                <p>The screen sits blank, then the entire paragraph appears at once. It feels broken, so people press the button again.</p>
+              </div>
+            </div>
+            <div class="step-card animate-in">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <strong>With streaming: first word in 6 seconds</strong>
+                <p>Same total time. But you can see it thinking, so you wait instead of giving up.</p>
+              </div>
+            </div>
+          </div>
+
+          <p>This was a real bug in this codebase. The switch that turns streaming on was left at its default — off — so one giant message arrived after a long silence. Turning it on changed one reply from <strong>1 chunk</strong> into <strong>269</strong>.</p>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">🕐</div>
+            <div class="callout-content">
+              <strong class="callout-title">Perceived speed is a feature</strong>
+              <p>Nothing got faster. Only the <em>order</em> changed. A large slice of performance work in real products is like this — not making the wait shorter, but making it visible.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Check yourself</h2>
+          <p>No score, no pass mark. These are here to make you pause and think.</p>
+
+          <div class="quiz-container" id="quiz-module1">
+            <div class="quiz-question-block"
+                 data-correct="opt-indexed"
+                 data-explanation-right="Right. Uploading and indexing are two different jobs. The file exists, but nothing has worked out what it looks like yet, so there is nothing for a search to match against."
+                 data-explanation-wrong="Have another think. The search worked fine yesterday and works for other videos — so the machinery is healthy. What is different about a video that arrived thirty seconds ago?">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>You upload a video, and thirty seconds later you search for something you know is in it. Nothing comes back. Other videos still search fine.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">Where do you look first?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-model" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The model is broken — it must be misreading the question</span>
+                </button>
+                <button class="quiz-option" data-value="opt-indexed" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Whether that video has finished being indexed yet</span>
+                </button>
+                <button class="quiz-option" data-value="opt-browser" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The browser probably cached an old result</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-stream"
+                 data-explanation-right="Exactly. Everything worked — the search ran, the answer was written. Only the delivery was wrong, and that is the last leg of the relay."
+                 data-explanation-wrong="Not quite. A complete, correct answer did arrive, which means every earlier runner did their job. Only the way it was handed over was wrong.">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>A user complains the agent is frozen. You watch: nothing for 15 seconds, then a full, correct, well-written answer appears all at once.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">Which leg of the relay would you suspect?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-search" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The search — it must be running slowly</span>
+                </button>
+                <button class="quiz-option" data-value="opt-stream" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The hand-off back to the browser — the answer is not being streamed</span>
+                </button>
+                <button class="quiz-option" data-value="opt-net" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The network between the user and the server</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-decide"
+                 data-explanation-right="Yes. This is the single most useful idea in the whole course: the model decides, the tools do. Keep those two jobs separate in your head and most agent behaviour stops being mysterious."
+                 data-explanation-wrong="Think back to the relay. The model has no camera, no database and no internet — it can only read what it is given and write a reply. So what is the only thing it can contribute?">
+              <h3 class="quiz-question">You are describing this system to a colleague. What is the model actually responsible for?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-find" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Watching the footage and finding the matching moments</span>
+                </button>
+                <button class="quiz-option" data-value="opt-decide" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Deciding which tool to run, and putting the results into words</span>
+                </button>
+                <button class="quiz-option" data-value="opt-store" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Storing the videos and remembering what is in them</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+            <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>

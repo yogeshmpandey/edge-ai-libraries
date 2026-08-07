@@ -1,0 +1,244 @@
+  <section class="module" id="module-2" style="background: var(--color-bg)">
+    <div class="module-content">
+      <header class="module-header animate-in">
+        <span class="module-number">02</span>
+        <h1 class="module-title">Six job adverts, and a model doing the hiring</h1>
+        <p class="module-subtitle">The agent can do exactly six things. Here they are, and here is how the model picks one.</p>
+      </header>
+
+      <div class="module-body">
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The whole surface</h2>
+          <p>This is everything the agent&apos;s <span class="term" data-definition="The tool surface is the complete set of actions you have made available to an AI. Anything not on it simply cannot happen, no matter how the user asks.">tool surface</span> covers. Not "some of the main features" — <em>everything</em>. Six.</p>
+
+          <div class="pattern-cards stagger-children">
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+              <div class="pattern-icon" style="background: var(--color-actor-1)">🔍</div>
+              <h4 class="pattern-title">search_video</h4>
+              <p class="pattern-desc">Find moments across every indexed video by describing what they look like.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+              <div class="pattern-icon" style="background: var(--color-actor-2)">📚</div>
+              <h4 class="pattern-title">list_videos</h4>
+              <p class="pattern-desc">Show what footage is in the library, and which of it has been indexed.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+              <div class="pattern-icon" style="background: var(--color-actor-3)">📝</div>
+              <h4 class="pattern-title">summarize_video</h4>
+              <p class="pattern-desc">Walk through one video end to end and describe what happens, as a timeline.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+              <div class="pattern-icon" style="background: var(--color-actor-4)">⚙️</div>
+              <h4 class="pattern-title">index_video</h4>
+              <p class="pattern-desc">Make a video reachable by search. Uploaded footage is invisible until this runs.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-5)">
+              <div class="pattern-icon" style="background: var(--color-actor-5)">🔔</div>
+              <h4 class="pattern-title">watch_for</h4>
+              <p class="pattern-desc">Keep looking for something and raise an alert when it turns up, whether or not anyone is watching.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-accent)">
+              <div class="pattern-icon" style="background: var(--color-accent)">📄</div>
+              <h4 class="pattern-title">generate_report</h4>
+              <p class="pattern-desc">Write up what this conversation found as a PDF you can hand to somebody else.</p>
+            </div>
+          </div>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">✂️</div>
+            <div class="callout-content">
+              <strong class="callout-title">Deliberately narrow</strong>
+              <p>The underlying system offers far more than six operations. The agent hides most of them, because every extra option is another decision a small model can get wrong.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">One class per job</h2>
+          <p>Each capability is a single Python <span class="term" data-definition="A class is a template for a thing in code — it bundles together some data and the actions you can perform on it. Think of it as a form with blanks to fill in, plus instructions for what to do with it.">class</span>. Three lines define what the model is shown.</p>
+
+          <div class="translation-block animate-in">
+            <div class="translation-code">
+              <span class="translation-label">CODE</span>
+              <pre><code>
+<span class="code-line"><span class="code-keyword">class</span> <span class="code-function">Capability</span>:</span>
+<span class="code-line">    <span class="code-comment">"""One tool: its schema, how to run it, and how to shape what comes back."""</span></span>
+<span class="code-line"></span>
+<span class="code-line">    name: <span class="code-keyword">str</span> = <span class="code-string">""</span></span>
+<span class="code-line">    description: <span class="code-keyword">str</span> = <span class="code-string">""</span></span>
+<span class="code-line">    parameters: <span class="code-keyword">dict</span>[<span class="code-keyword">str</span>, Any] = {<span class="code-string">"type"</span>: <span class="code-string">"object"</span>, <span class="code-string">"properties"</span>: {}}</span>
+              </code></pre>
+            </div>
+            <div class="translation-english">
+              <span class="translation-label">PLAIN ENGLISH</span>
+              <div class="translation-lines">
+                <p class="tl">Here is the blueprint every tool is built from.</p>
+                <p class="tl">A one-line note for humans reading the code. The model never sees this.</p>
+                <p class="tl">&nbsp;</p>
+                <p class="tl"><strong>name</strong> — what the model calls this tool when it wants to run it.</p>
+                <p class="tl"><strong>description</strong> — the job advert. This is what the model reads to decide whether this is the right tool. It is the most important string in the file.</p>
+                <p class="tl"><strong>parameters</strong> — the blanks the model has to fill in, and what is allowed in each. Engineers call this shape a <span class="term" data-definition="A schema is a description of what shape data must have — which fields exist, which are required, and what type each one is. It lets software reject nonsense before acting on it.">schema</span>.</p>
+              </div>
+            </div>
+          </div>
+
+          <p>Adding a seventh capability means writing one more class. The list the model sees, the menu in the interface, and the <span class="term" data-definition="The dispatcher is the piece of code that receives a request and routes it to whichever function should handle it — a switchboard operator for software.">dispatcher</span> that runs it are all generated from these classes automatically.</p>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The advert is the behaviour</h2>
+          <p>Here is the real description for the search tool. Read it as what it is: instructions to a candidate who will only ever see this paragraph.</p>
+
+          <div class="translation-block animate-in">
+            <div class="translation-code">
+              <span class="translation-label">CODE</span>
+              <pre><code>
+<span class="code-line">    description = (</span>
+<span class="code-line">        <span class="code-string">"Search all indexed video for moments matching a visual description. "</span></span>
+<span class="code-line">        <span class="code-string">"Use this whenever the operator asks to find, show or locate something. "</span></span>
+<span class="code-line">        <span class="code-string">"An attached video automatically restricts the search to that video."</span></span>
+<span class="code-line">    )</span>
+              </code></pre>
+            </div>
+            <div class="translation-english">
+              <span class="translation-label">PLAIN ENGLISH</span>
+              <div class="translation-lines">
+                <p class="tl">The job advert starts here.</p>
+                <p class="tl">Sentence one says <em>what the job is</em>.</p>
+                <p class="tl">Sentence two says <em>when to apply</em> — and names the actual words a person is likely to use: find, show, locate.</p>
+                <p class="tl">Sentence three heads off a mistake before it happens: do not ask which video, it is already handled.</p>
+                <p class="tl">That is the entire specification. There is no other instruction anywhere.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+              <strong class="callout-title">Prose is configuration here</strong>
+              <p>In ordinary software, behaviour lives in <span class="term" data-definition="Logic here means explicit rules written as code — if this, then that — which you can read line by line and predict exactly.">logic</span> you can step through. In an agent, a large part of it lives in English sentences. Rewording a description changes what the software does — and no test will fail. This is the single strangest thing about building with models, and worth knowing before you instruct an AI to "just tweak the prompt".</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">You be the model</h2>
+          <p>Drag each thing a person might type onto the tool that should run. You have the same information the model does — the six adverts above.</p>
+
+          <div class="dnd-container" id="dnd-module2">
+            <div class="dnd-chips">
+              <div class="dnd-chip" draggable="true" data-answer="cap-search">search_video</div>
+              <div class="dnd-chip" draggable="true" data-answer="cap-watch">watch_for</div>
+              <div class="dnd-chip" draggable="true" data-answer="cap-index">index_video</div>
+              <div class="dnd-chip" draggable="true" data-answer="cap-report">generate_report</div>
+            </div>
+            <div class="dnd-zones">
+              <div class="dnd-zone" data-correct="cap-search">
+                <p class="dnd-zone-label">"show me anyone near the loading bay"</p>
+                <div class="dnd-zone-target">Drop here</div>
+              </div>
+              <div class="dnd-zone" data-correct="cap-watch">
+                <p class="dnd-zone-label">"let me know if a spill appears in aisle 3"</p>
+                <div class="dnd-zone-target">Drop here</div>
+              </div>
+              <div class="dnd-zone" data-correct="cap-index">
+                <p class="dnd-zone-label">"make the video I just uploaded searchable"</p>
+                <div class="dnd-zone-target">Drop here</div>
+              </div>
+              <div class="dnd-zone" data-correct="cap-report">
+                <p class="dnd-zone-label">"write that up so I can send it to my manager"</p>
+                <div class="dnd-zone-target">Drop here</div>
+              </div>
+            </div>
+            <button class="btn" onclick="checkDnD('dnd-module2')">Check Matches</button>
+            <button class="btn" onclick="resetDnD('dnd-module2')">Reset</button>
+          </div>
+
+          <p>The difference between the first two is the tense. "Show me" is about the past; "let me know if" is about the future. That distinction is carried entirely by the wording of two adverts.</p>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Check yourself</h2>
+
+          <div class="quiz-container" id="quiz-module2">
+            <div class="quiz-question-block"
+                 data-correct="opt-desc"
+                 data-explanation-right="Yes. The model only ever sees name, description and parameters. Rename the function all you like — what changes behaviour is the sentence describing when to use it."
+                 data-explanation-wrong="Not quite. Remember what the model actually receives: a name, a description, and a list of blanks to fill. Comments and internal function names never reach it.">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>Users keep asking "was there a spill?" and getting a chatty non-answer instead of a search. You have one change to make.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">What are you most likely to change?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-code" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The code inside the search tool that queries the database</span>
+                </button>
+                <button class="quiz-option" data-value="opt-desc" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The description, so it says a question about whether something happened counts as a search</span>
+                </button>
+                <button class="quiz-option" data-value="opt-rename" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Rename the tool to something more obvious, like find_spills</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-narrow"
+                 data-explanation-right="Right. Each extra tool is another chance to pick wrong, and the wrong pick is invisible — you get a confident answer from the wrong place. Fewer, clearer tools beat a complete API surface."
+                 data-explanation-wrong="Think about who is choosing. A small model picking from forty similar-sounding options will sometimes pick wrong, and it will not tell you it was unsure.">
+              <h3 class="quiz-question">The underlying system has around forty operations. The agent exposes six. Why is that a deliberate choice rather than unfinished work?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-speed" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Sending forty descriptions would be too slow</span>
+                </button>
+                <button class="quiz-option" data-value="opt-narrow" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Every extra option is another decision the model can get wrong, silently</span>
+                </button>
+                <button class="quiz-option" data-value="opt-secret" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The other operations are private and users are not allowed to reach them</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-oneclass"
+                 data-explanation-right="Exactly — and this is what to ask an AI assistant for. Say: add a capability class, and let the existing machinery pick it up. Not: add the tool to the model list, the menu, and the dispatcher."
+                 data-explanation-wrong="Have another look at how the six are defined. Everything the model sees and everything the interface shows is generated from those classes, so there is only one place to add.">
+              <h3 class="quiz-question">You want the agent to be able to delete a video. What is the shape of that job?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-many" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Add it to the model tool list, the interface menu, and the dispatcher — three places</span>
+                </button>
+                <button class="quiz-option" data-value="opt-oneclass" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Write one more capability class; the rest is derived from it</span>
+                </button>
+                <button class="quiz-option" data-value="opt-prompt" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Describe deletion in the system prompt and let the model work it out</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+            <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>

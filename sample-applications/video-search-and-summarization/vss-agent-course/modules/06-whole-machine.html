@@ -1,0 +1,264 @@
+  <section class="module" id="module-6" style="background: var(--color-bg)">
+    <div class="module-content">
+      <header class="module-header animate-in">
+        <span class="module-number">06</span>
+        <h1 class="module-title">The whole machine</h1>
+        <p class="module-subtitle">Every part at once — and the one question that decides how good the next version is.</p>
+      </header>
+
+      <div class="module-body">
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Click anything</h2>
+          <p>Three territories, each a group of separate <span class="term" data-definition="A service is an independently running program that other programs talk to over the network. Modern systems are built from many small ones rather than one big program.">services</span>. The browser you look at, the agent that thinks, and the video system that does the heavy work.</p>
+
+          <div class="arch-diagram animate-in">
+            <div class="arch-zone">
+              <h4 class="arch-zone-label">In your browser</h4>
+              <div class="arch-component" data-desc="The chat panel, results grid, library and alerts. It holds no knowledge of its own — it renders whatever labelled messages arrive and sends what you type.">
+                <div class="arch-icon">🖥️</div>
+                <span>Interface</span>
+              </div>
+            </div>
+
+            <div class="arch-zone">
+              <h4 class="arch-zone-label">The agent</h4>
+              <div class="arch-component" data-desc="Receives your message, runs the conversation loop, and streams events back. It decides nothing itself — it asks the model and carries out the answer.">
+                <div class="arch-icon">🧠</div>
+                <span>Engine</span>
+              </div>
+              <div class="arch-component" data-desc="Takes the frame nearest each top result and asks the vision model whether it genuinely shows what was asked for. This is what turns 12 plausible results into 1 confirmed and 2 rejected.">
+                <div class="arch-icon">🔎</div>
+                <span>Critic</span>
+              </div>
+              <div class="arch-component" data-desc="Re-runs saved searches on a timer and raises only moments never seen before. A watched query returns everything it has ever matched, so the difference is the whole value.">
+                <div class="arch-icon">🔔</div>
+                <span>Alert watcher</span>
+              </div>
+              <div class="arch-component" data-desc="Turns what a conversation found into a PDF and a Markdown file, with frames embedded as evidence, and puts them in the object store.">
+                <div class="arch-icon">📄</div>
+                <span>Report writer</span>
+              </div>
+              <div class="arch-component" data-desc="The agent's own database. Holds conversations and which alerts have already been raised — and nothing else. How little lives here is a deliberate measure of health.">
+                <div class="arch-icon">🗄️</div>
+                <span>Its own database</span>
+              </div>
+            </div>
+
+            <div class="arch-zone">
+              <h4 class="arch-zone-label">The tool server</h4>
+              <div class="arch-component" data-desc="Publishes the tools in a standard shape any AI client can read, and tidies raw results into something a model can use — real filenames instead of identifiers, seconds instead of raw offsets.">
+                <div class="arch-icon">🔧</div>
+                <span>MCP server</span>
+              </div>
+            </div>
+
+            <div class="arch-zone">
+              <h4 class="arch-zone-label">The video system</h4>
+              <div class="arch-component" data-desc="The coordinator. Owns the list of videos, runs the captioning pipeline, and tracks the progress of long jobs.">
+                <div class="arch-icon">🎬</div>
+                <span>Pipeline Manager</span>
+              </div>
+              <div class="arch-component" data-desc="Decodes video, cuts it into segments and runs object detection over the frames. If one stage is missing from its configuration, detections are computed and thrown away without a word.">
+                <div class="arch-icon">🎞️</div>
+                <span>Ingestion</span>
+              </div>
+              <div class="arch-component" data-desc="Stores the position of every segment and answers the question: which twelve are nearest to this description? It cannot tell you that none of them match.">
+                <div class="arch-icon">📐</div>
+                <span>Search index</span>
+              </div>
+              <div class="arch-component" data-desc="Serves the language and vision models on local hardware. Everything the agent thinks passes through here — and its restart is why one search behaved differently on Tuesday.">
+                <div class="arch-icon">🤖</div>
+                <span>Model server</span>
+              </div>
+              <div class="arch-component" data-desc="Holds the video files, the extracted frames, and the finished reports. The browser reaches it through a gateway, which is why one address in the configuration must be one a browser can resolve.">
+                <div class="arch-icon">📦</div>
+                <span>Object store</span>
+              </div>
+            </div>
+
+            <div class="arch-description" id="arch-desc">Click any component to learn what it does</div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The question that decides the next version</h2>
+          <p>Look again at the agent's territory. Four of those five boxes hold <span class="term" data-definition="State is anything a program has to remember between one request and the next. The more of it you keep, the more there is to lose on a restart, get out of sync, or contradict.">state</span> or do work the video system arguably should have done.</p>
+
+          <div class="icon-rows stagger-children">
+            <div class="icon-row animate-in">
+              <div class="icon-circle" style="background: var(--color-error)">🔎</div>
+              <div>
+                <strong>The critic checks results the search returned</strong>
+                <p>Every client that ever uses this search has to build its own checker, or trust bad results.</p>
+              </div>
+            </div>
+            <div class="icon-row animate-in">
+              <div class="icon-circle" style="background: var(--color-error)">🔔</div>
+              <div>
+                <strong>The watcher works out what is new</strong>
+                <p>Because saved searches return everything they have ever matched, not the difference.</p>
+              </div>
+            </div>
+            <div class="icon-row animate-in">
+              <div class="icon-circle" style="background: var(--color-error)">🗄️</div>
+              <div>
+                <strong>The agent keeps a database to remember what it already told you</strong>
+                <p>State that exists only because the system upstream does not keep it.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">📏</div>
+            <div class="callout-content">
+              <strong class="callout-title">A measure you can use anywhere</strong>
+              <p><strong>The amount of state a client has to keep is a measure of how much the service is not doing.</strong> When you find yourself instructing an AI assistant to "remember which ones we already handled", stop — that is usually a sign the thing you are calling should have told you.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">What you now know how to ask for</h2>
+          <p>Six modules, and the point of all of them was to make these sentences sayable.</p>
+
+          <div class="badge-list">
+            <div class="badge-item">
+              <code class="badge-code">"add a capability"</code>
+              <span class="badge-desc">Not "add a feature" — one class, and the tool list, the menu and the wiring follow from it.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">"degrade, do not fail"</code>
+              <span class="badge-desc">This optional service being down should make the feature worse, not absent.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">"set temperature to 0 for tool decisions"</code>
+              <span class="badge-desc">Stop the choice of whether to act being sampled at random.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">"verify before showing"</code>
+              <span class="badge-desc">Check the top results against the source before presenting them as answers.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">"give unknown its own state"</code>
+              <span class="badge-desc">Do not fold "not checked" into "failed".</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">"stream the response"</code>
+              <span class="badge-desc">Send it as it is produced rather than in one lump at the end.</span>
+            </div>
+          </div>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">🗣️</div>
+            <div class="callout-content">
+              <strong class="callout-title">Vocabulary is the leverage</strong>
+              <p>You do not need to write this code. You need to be able to name what you want precisely enough that an assistant builds the right thing — and to notice when it has not.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Last one</h2>
+
+          <div class="quiz-container" id="quiz-module6">
+            <div class="quiz-question-block"
+                 data-correct="opt-upstream"
+                 data-explanation-right="Exactly the reasoning from this module. Bookkeeping in the client is a smell: it means the service is not telling you what changed, and every other client will have to solve it again."
+                 data-explanation-wrong="It would work — but ask why you are keeping that list at all. What would have to be true for you not to need it?">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>You are building a feature that polls a service and notifies people about new items. The service returns every item that has ever matched, so you plan a table recording which ones you already sent.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">What should you at least consider first?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-build" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Build the table — it is a few lines and it works</span>
+                </button>
+                <button class="quiz-option" data-value="opt-upstream" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Ask whether the service can tell you what is new, so no client has to keep that list</span>
+                </button>
+                <button class="quiz-option" data-value="opt-poll" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Poll more often so there is less to compare each time</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-derived"
+                 data-explanation-right="Right — this is exactly the 0-of-8 bug. Whether work was completed must be recorded when it completes. Progress can be lost on restart; the fact of completion cannot."
+                 data-explanation-wrong="Think about what disappears when a process restarts. Live progress is fine to lose — but was the job done is a fact that has to survive.">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>Your app shows whether each uploaded file has finished processing. After a routine restart, everything shows as unprocessed — though the results are all still there.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">What is the underlying mistake?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-cache" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>A cache was not warmed up after the restart</span>
+                </button>
+                <button class="quiz-option" data-value="opt-derived" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>"Finished" was being inferred from live progress instead of recorded when the work completed</span>
+                </button>
+                <button class="quiz-option" data-value="opt-db" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The database lost data during the restart</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-both"
+                 data-explanation-right="Yes. The model chooses; the tools act. Almost every confusing agent behaviour becomes explicable once you know which of those two halves you are looking at."
+                 data-explanation-wrong="Have a think back to module 1. There were two quite different jobs being done, and mixing them up is what makes agent systems feel like magic instead of machinery.">
+              <h3 class="quiz-question">You are explaining agents to a colleague in one sentence. Which is it?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-ai" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>An AI that has been given access to your data so it can answer questions about it</span>
+                </button>
+                <button class="quiz-option" data-value="opt-both" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Ordinary software that asks a model which of its own functions to run, then runs it and reports back</span>
+                </button>
+                <button class="quiz-option" data-value="opt-auto" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>A model that writes and executes its own code to solve whatever it is asked</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">Check Answers</button>
+            <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">Try Again</button>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">That is the machine</h2>
+          <p>A chat box, six job adverts, a standard container, a fact-checker, and a lot of careful behaviour for when the things around it misbehave.</p>
+          <p>None of it is magic. It is a model making one narrow decision, wrapped in ordinary software that does the actual work — and that is true of every agent you will meet.</p>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">🧭</div>
+            <div class="callout-content">
+              <strong class="callout-title">Where to go poking</strong>
+              <p>Open <code>vss-agent/src/vss_agent/tools.py</code> and read the six classes. You have already seen the shape — now every one of them will make sense, and you will be able to say precisely what a seventh should look like.</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>

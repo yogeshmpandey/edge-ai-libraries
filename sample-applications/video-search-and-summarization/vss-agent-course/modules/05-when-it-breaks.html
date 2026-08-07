@@ -1,0 +1,282 @@
+  <section class="module" id="module-5" style="background: var(--color-bg-warm)">
+    <div class="module-content">
+      <header class="module-header animate-in">
+        <span class="module-number">05</span>
+        <h1 class="module-title">Watertight compartments</h1>
+        <p class="module-subtitle">Real failures from this deployment — and why almost none of them were the agent's fault.</p>
+      </header>
+
+      <div class="module-body">
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The agent is the last link</h2>
+          <p>Behind the chat box sit roughly a dozen separate services: a model server, a tool server, a video pipeline, a database, an object store, a search index.</p>
+          <p>When any of them misbehaves, the operator sees the same thing: <em>the agent found nothing</em>.</p>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">🚢</div>
+            <div class="callout-content">
+              <strong class="callout-title">Why ships have bulkheads</strong>
+              <p>A hull is divided into sealed compartments so a breach floods one and the ship stays up. Software needs the same discipline: one failing dependency should degrade one feature, not sink the session.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Find the line that keeps the ship afloat</h2>
+          <p>This code labels a video so searches can be narrowed to it. On one <span class="term" data-definition="A deployment is one running installation of the software — your company's copy, on your servers, at a particular version. Two deployments of the same product can differ.">deployment</span>, the labelling <span class="term" data-definition="An endpoint is one specific address on a service that does one specific job. If it is missing, calls to it come back as not-found rather than doing anything.">endpoint</span> simply does not exist and returns "not found".</p>
+          <p>Click the line that stops that from breaking everything.</p>
+
+          <div class="bug-challenge">
+            <h3>Which line saves the deployment?</h3>
+            <div class="bug-code">
+              <div class="bug-line" data-line="1" onclick="checkBugLine(this, false)">
+                <span class="line-num">1</span>
+                <code>    try:</code>
+              </div>
+              <div class="bug-line" data-line="2" onclick="checkBugLine(this, false)">
+                <span class="line-num">2</span>
+                <code>        return await deps.client.add_video_tags(video_id, [uuid_tag(video_id)])</code>
+              </div>
+              <div class="bug-line bug-target" data-line="3" onclick="checkBugLine(this, true)">
+                <span class="line-num">3</span>
+                <code>    except VssError as exc:</code>
+              </div>
+              <div class="bug-line" data-line="4" onclick="checkBugLine(this, false)">
+                <span class="line-num">4</span>
+                <code>        logger.warning(</code>
+              </div>
+              <div class="bug-line" data-line="5" onclick="checkBugLine(this, false)">
+                <span class="line-num">5</span>
+                <code>            "Could not tag %s with its UUID; searches scoped to this video "</code>
+              </div>
+              <div class="bug-line" data-line="6" onclick="checkBugLine(this, false)">
+                <span class="line-num">6</span>
+                <code>            "will fall back to filtering by id: %s",</code>
+              </div>
+              <div class="bug-line" data-line="7" onclick="checkBugLine(this, false)">
+                <span class="line-num">7</span>
+                <code>        return []</code>
+              </div>
+            </div>
+            <div class="bug-feedback" id="bug-feedback"></div>
+          </div>
+
+          <p>Without those two words, one missing feature on one version of one service meant <strong>no video could be added at all</strong>. The failure was three services away from where it appeared.</p>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+              <strong class="callout-title">Decide what is essential and what is a bonus</strong>
+              <p>Labelling was always a nice-to-have — it makes searches faster to narrow. It was written as though it were mandatory. Ask of every dependency: <em>if this is missing, should the feature be worse, or should it be gone?</em> Say which one you want when you brief an AI assistant, because it will not guess.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The gallery</h2>
+          <p>Every one of these was reported as "the agent is broken". None of them were.</p>
+
+          <div class="pattern-cards stagger-children">
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+              <div class="pattern-icon" style="background: var(--color-actor-1)">🏷️</div>
+              <h4 class="pattern-title">"Nothing indexes"</h4>
+              <p class="pattern-desc">A labelling endpoint missing on that version returned "not found", and the error travelled all the way up and killed the job.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+              <div class="pattern-icon" style="background: var(--color-actor-2)">👁️</div>
+              <h4 class="pattern-title">"No detections, ever"</h4>
+              <p class="pattern-desc">One missing stage in the video pipeline meant the object detector ran perfectly and its output was thrown away silently.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+              <div class="pattern-icon" style="background: var(--color-actor-3)">🔢</div>
+              <h4 class="pattern-title">"0 of 8 indexed"</h4>
+              <p class="pattern-desc">Whether a video is searchable was being worked out from live progress data. Restart the service, lose the progress, and eight indexed videos read as zero.</p>
+            </div>
+            <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+              <div class="pattern-icon" style="background: var(--color-actor-4)">🔌</div>
+              <h4 class="pattern-title">"Every search is empty"</h4>
+              <p class="pattern-desc">One service wedged its own database connection. Its health check still answered "fine" while every real query hung.</p>
+            </div>
+          </div>
+
+          <div class="callout callout-warning">
+            <div class="callout-icon">🩺</div>
+            <div class="callout-content">
+              <strong class="callout-title">Health checks lie</strong>
+              <p>That last one is worth remembering. A service reporting healthy usually means "the process is running", not "the work succeeds". When something is wrong, test the actual job, not the status light.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">The worst kind: it worked yesterday</h2>
+          <p>Users reported that search sometimes just… did not happen. The agent would answer in words instead of searching. Same question, different day, different behaviour.</p>
+          <p>The same request was sent eight times, unchanged:</p>
+
+          <div class="step-cards">
+            <div class="step-card" style="border-left-color: var(--color-error)">
+              <div class="step-num" style="background: var(--color-error)">5</div>
+              <div class="step-body">
+                <strong>of 8 identical requests ran a search</strong>
+                <p>The other three answered in prose. Nothing differed but chance.</p>
+              </div>
+            </div>
+            <div class="step-card" style="border-left-color: var(--color-success)">
+              <div class="step-num" style="background: var(--color-success)">8</div>
+              <div class="step-body">
+                <strong>of 8 after one setting changed</strong>
+                <p>Turning the model's randomness down to zero. Same prompt, same tools, same everything else.</p>
+              </div>
+            </div>
+          </div>
+
+          <p>Models pick their next word with a controlled amount of randomness, set by a dial called <span class="term" data-definition="Temperature controls how much randomness an AI uses when choosing its next word. Higher is more varied and creative; zero makes it pick the most likely option every time.">temperature</span>.  That is lovely for prose and disastrous for decisions — and "shall I run a search?" is a decision.</p>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">🎲</div>
+            <div class="callout-content">
+              <strong class="callout-title">Separate the choosing from the writing</strong>
+              <p>When an AI feature works intermittently with no pattern, suspect sampling before you suspect your prompt. A tool that runs 60% of the time does not look random to a user — it looks broken.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">A bug worth studying</h2>
+          <p>Before summarising, the agent asks three questions: what is this footage of, what should be called out, what to keep an eye on. The operator answers. Then the agent replied:</p>
+
+          <div class="callout callout-warning">
+            <div class="callout-icon">💬</div>
+            <div class="callout-content">
+              <strong class="callout-title">"I need you to specify which video you'd like summarized."</strong>
+              <p>It had just been told. Twice.</p>
+            </div>
+          </div>
+
+          <p>Two independent causes, stacked:</p>
+
+          <div class="step-cards stagger-children">
+            <div class="step-card animate-in">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <strong>The attachment was dropped</strong>
+                <p>Answering re-sends the original message — but sending had already cleared the attached video, so the retry arrived with no video at all.</p>
+              </div>
+            </div>
+            <div class="step-card animate-in">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <strong>The model read its own question back</strong>
+                <p>Its last remark in the <span class="term" data-definition="The history is the earlier messages you resend to the AI each turn so it knows what has been said. Models have no memory of their own — they only see what you include here.">history</span> was "tell me what to look for". Seeing that, it asked again. No amount of instruction talked it out of it.</p>
+              </div>
+            </div>
+          </div>
+
+          <p>The second fix is the interesting one: the question is now left out of the conversation the model reads. It was never an answer — it was a form.</p>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">🪞</div>
+            <div class="callout-content">
+              <strong class="callout-title">Models imitate the conversation they are shown</strong>
+              <p>A model that sees itself asking a question will ask it again. If your AI feature repeats itself in a loop, look at what you are putting in its history before you look at your instructions.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Check yourself</h2>
+
+          <div class="quiz-container" id="quiz-module5">
+            <div class="quiz-question-block"
+                 data-correct="opt-real"
+                 data-explanation-right="Right. Health usually means the process is alive, not that the work succeeds. Always test the real operation — and test it from where the caller sits."
+                 data-explanation-wrong="Remember the wedged service. It reported healthy for hours while every genuine query hung. What would have caught that?">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>Every search returns nothing. All services report healthy. Your AI assistant suggests rebuilding the search index, which takes hours.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">What do you do first?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-rebuild" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Rebuild the index — the assistant knows the system</span>
+                </button>
+                <button class="quiz-option" data-value="opt-real" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Send one real search straight to the search service and watch what it does</span>
+                </button>
+                <button class="quiz-option" data-value="opt-restart" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Restart everything and hope it clears</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-degrade"
+                 data-explanation-right="Exactly the lesson from the labelling bug. Say which parts are essential and which are enhancements, or you will get code that treats a nice-to-have as load-bearing."
+                 data-explanation-wrong="That instruction leaves the most important question unanswered: when the optional service is missing, should the whole feature stop, or should it carry on in a reduced form?">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>You are asking an AI assistant to add a feature that calls an optional service to enrich its results.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">Which instruction produces the more robust code?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-basic" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>"Call the enrichment service and handle errors properly"</span>
+                </button>
+                <button class="quiz-option" data-value="opt-degrade" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>"Enrichment is optional — if that service fails, log it and carry on with the plain result"</span>
+                </button>
+                <button class="quiz-option" data-value="opt-retry" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>"Retry the enrichment service until it succeeds"</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-sampling"
+                 data-explanation-right="Yes. Intermittent with no pattern points at sampling. Prompt problems are usually consistent — the same input fails the same way every time."
+                 data-explanation-wrong="Think about the shape of the symptom. A wording problem tends to fail the same way every time. What fails differently on identical input?">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>Your own AI feature calls a tool most of the time, but sometimes just replies with text. You cannot find a pattern in which requests fail.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">What is the first thing to rule out?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-wording" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The tool description is worded badly</span>
+                </button>
+                <button class="quiz-option" data-value="opt-sampling" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Randomness in the model — check whether the decision is being sampled</span>
+                </button>
+                <button class="quiz-option" data-value="opt-network" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Network timeouts between your app and the model</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+            <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>

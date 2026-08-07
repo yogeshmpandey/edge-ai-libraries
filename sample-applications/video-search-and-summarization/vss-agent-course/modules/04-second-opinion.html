@@ -1,0 +1,270 @@
+  <section class="module" id="module-4" style="background: var(--color-bg)">
+    <div class="module-content">
+      <header class="module-header animate-in">
+        <span class="module-number">04</span>
+        <h1 class="module-title">The fact-checker</h1>
+        <p class="module-subtitle">Search is confidently wrong a lot of the time. Here is what this codebase does about it.</p>
+      </header>
+
+      <div class="module-body">
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">A real result, from a real run</h2>
+          <p>Somebody searched for "show me a car". Here is what actually came back.</p>
+
+          <div class="step-cards stagger-children">
+            <div class="step-card animate-in">
+              <div class="step-num">12</div>
+              <div class="step-body">
+                <strong>candidate segments returned</strong>
+                <p>Ranked by how closely each one matched. Every one of them scored well enough to show.</p>
+              </div>
+            </div>
+            <div class="step-card animate-in" style="border-left-color: var(--color-success)">
+              <div class="step-num" style="background: var(--color-success)">1</div>
+              <div class="step-body">
+                <strong>confirmed on inspection</strong>
+                <p>A second look agreed: yes, that is a car.</p>
+              </div>
+            </div>
+            <div class="step-card animate-in" style="border-left-color: var(--color-error)">
+              <div class="step-num" style="background: var(--color-error)">2</div>
+              <div class="step-body">
+                <strong>rejected on inspection</strong>
+                <p>Confident, high-scoring, and wrong. Two of the top three.</p>
+              </div>
+            </div>
+          </div>
+
+          <p>Nothing was broken. That is search working <em>normally</em>.</p>
+
+          <div class="callout callout-warning">
+            <div class="callout-icon">⚠️</div>
+            <div class="callout-content">
+              <strong class="callout-title">A number worth carrying around</strong>
+              <p>If you build anything that searches by meaning — documents, images, video, support tickets — expect a meaningful share of confident, well-ranked, wrong results. Plan for it in the design instead of being surprised by it in production.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Why it goes wrong</h2>
+          <p>Searching here is not looking for words. Every video segment is turned into an <span class="term" data-definition="An embedding is a long list of numbers standing for the meaning of something — an image, a sentence, a video clip. Similar things get similar numbers, which is what makes searching by description possible.">embedding</span> — a long list of numbers describing roughly what it looks like.</p>
+
+          <div class="icon-rows">
+            <div class="icon-row">
+              <div class="icon-circle" style="background: var(--color-actor-2)">📍</div>
+              <div>
+                <strong>Everything gets a position</strong>
+                <p>Each segment, and your typed question too. Similar-looking things land near each other.</p>
+              </div>
+            </div>
+            <div class="icon-row">
+              <div class="icon-circle" style="background: var(--color-actor-3)">📏</div>
+              <div>
+                <strong>Search means "what is nearest?"</strong>
+                <p>Not "what contains this word". That is why plain English works at all.</p>
+              </div>
+            </div>
+            <div class="icon-row">
+              <div class="icon-circle" style="background: var(--color-error)">🎭</div>
+              <div>
+                <strong>Nearest is not the same as right</strong>
+                <p>A red van sits very close to a red car. Nearest always returns something — even when nothing matches.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">💡</div>
+            <div class="callout-content">
+              <strong class="callout-title">This kind of search can never say "no"</strong>
+              <p>Ask for the twelve nearest segments and you get twelve, always — even if your subject appears nowhere in the footage. The ranking has no notion of "none of these are it". Something else has to supply that judgement.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Sending it to the fact-checker</h2>
+          <p>A newspaper does not print a reporter's claim because it sounds plausible. Someone checks it against the source first.</p>
+          <p>So the agent takes the frame nearest each top hit and asks the <span class="term" data-definition="A vision model is an AI that reads images as well as text, so you can show it a picture and ask a question about what is in it.">vision model</span> a much narrower question. This second pass is called a <span class="term" data-definition="A critic is a second AI pass whose only job is to check the first one — reviewing work rather than producing it. A common and very effective pattern.">critic</span>.</p>
+
+          <div class="translation-block animate-in">
+            <div class="translation-code">
+              <span class="translation-label">CODE</span>
+              <pre><code>
+<span class="code-line">    prompt = (</span>
+<span class="code-line">        <span class="code-string">"You are verifying a video search result.\n"</span></span>
+<span class="code-line">        <span class="code-string">f'The user asked for: "{query}".\n'</span></span>
+<span class="code-line">        <span class="code-string">"Looking only at this frame, decide whether it genuinely shows that, "</span></span>
+<span class="code-line">        <span class="code-string">"and say which of these are visible:\n"</span></span>
+<span class="code-line">        + <span class="code-string">"\n"</span>.<span class="code-function">join</span>(<span class="code-string">f"- {item}"</span> <span class="code-keyword">for</span> item <span class="code-keyword">in</span> checkable)</span>
+<span class="code-line">        + <span class="code-string">"\nBe strict: if something is not clearly visible, it is not present."</span></span>
+<span class="code-line">    )</span>
+              </code></pre>
+            </div>
+            <div class="translation-english">
+              <span class="translation-label">PLAIN ENGLISH</span>
+              <div class="translation-lines">
+                <p class="tl">Build the <span class="term" data-definition="A prompt is the text you send an AI to get a result. Everything it knows about the task arrives this way, which is why the exact wording changes the behaviour.">prompt</span> that goes to the vision model alongside the picture.</p>
+                <p class="tl">Give it one job, and say so first. It is not chatting, it is checking.</p>
+                <p class="tl">Quote what the person actually asked for, word for word.</p>
+                <p class="tl">"Looking only at this frame" — no guessing from context, no benefit of the doubt.</p>
+                <p class="tl">Then ask it to go through a checklist rather than give a yes or no.</p>
+                <p class="tl">The checklist itself: each thing that must be visible, as its own line.</p>
+                <p class="tl">And the whole trick, in one sentence. Without it, models are agreeable and say yes.</p>
+                <p class="tl">That is the fact-checker.</p>
+              </div>
+            </div>
+          </div>
+
+          <p>"Be strict" is doing an enormous amount of work here. A model asked "is this a red car?" wants to be helpful. It has to be told that unhelpful is the correct answer when the picture does not support it.</p>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Three verdicts, not two</h2>
+
+          <div class="translation-block animate-in">
+            <div class="translation-code">
+              <span class="translation-label">CODE</span>
+              <pre><code>
+<span class="code-line">CONFIRMED = <span class="code-string">"Confirmed"</span></span>
+<span class="code-line">REJECTED = <span class="code-string">"Rejected"</span></span>
+<span class="code-line">UNVERIFIED = <span class="code-string">"Unverified"</span></span>
+              </code></pre>
+            </div>
+            <div class="translation-english">
+              <span class="translation-label">PLAIN ENGLISH</span>
+              <div class="translation-lines">
+                <p class="tl">The checker looked and agreed.</p>
+                <p class="tl">The checker looked and disagreed.</p>
+                <p class="tl">Nobody looked — it ran out of budget, or the check failed. Crucially <em>not</em> the same as "rejected", and the interface says so.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout callout-accent">
+            <div class="callout-icon">🤔</div>
+            <div class="callout-content">
+              <strong class="callout-title">"Unknown" deserves its own answer</strong>
+              <p>Collapsing "we did not check" into "it failed" is one of the most common ways software lies to people. Any time you design a status, ask whether it needs a third value for <em>we do not know</em> — it usually does.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Why not check all twelve?</h2>
+          <p>Because each check is a full look at a picture by the <span class="term" data-definition="A vision model is an AI that reads images as well as text, so you can show it a picture and ask a question about it.">vision model</span>, and the <span class="term" data-definition="The model server is the service that actually runs the AI on hardware and answers requests from your software. Here it runs on the deployment&apos;s own machines rather than in the cloud.">model server</span> does them one at a time.</p>
+
+          <div class="badge-list">
+            <div class="badge-item">
+              <code class="badge-code">CRITIC_MAX_CLIPS=3</code>
+              <span class="badge-desc">How many results get a second look. Raise it for accuracy, lower it for speed — this one setting is the whole trade-off.</span>
+            </div>
+            <div class="badge-item">
+              <code class="badge-code">CRITIC_ENABLED</code>
+              <span class="badge-desc">Turn checking off entirely. Faster, and every result becomes Unverified rather than silently trusted.</span>
+            </div>
+          </div>
+
+          <p>A slow or failed check never sinks the search. It returns Unverified and the results still arrive.</p>
+
+          <div class="callout callout-info">
+            <div class="callout-icon">⚖️</div>
+            <div class="callout-content">
+              <strong class="callout-title">Accuracy has a price, and it is time</strong>
+              <p>This is the shape of nearly every quality decision in AI systems. There is no setting that is simply "better" — there is a dial between fast and right, and someone has to choose where it sits for their situation.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen animate-in">
+          <h2 class="screen-heading">Check yourself</h2>
+
+          <div class="quiz-container" id="quiz-module4">
+            <div class="quiz-question-block"
+                 data-correct="opt-normal"
+                 data-explanation-right="Correct — and this is why the fact-checker exists. Nearest-match search always returns its quota, so an empty library and a full one both produce twelve confident results."
+                 data-explanation-wrong="Think about what the search is actually doing: returning the nearest twelve. What does it return when nothing is close?">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>A user searches for "a fire extinguisher" in footage that contains no fire extinguisher anywhere. Twelve results come back with respectable scores.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">What has gone wrong?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-bug" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The search index is corrupted and needs rebuilding</span>
+                </button>
+                <button class="quiz-option" data-value="opt-normal" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Nothing — nearest-match search always returns its quota, so "none" is not an answer it can give</span>
+                </button>
+                <button class="quiz-option" data-value="opt-model" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>The model misunderstood the phrase "fire extinguisher"</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-strict"
+                 data-explanation-right="Yes. Models default to agreeable. Without an explicit instruction that not-clearly-visible means absent, a checker approves almost everything and stops being a check at all."
+                 data-explanation-wrong="Close, but think about which single sentence is preventing the checker from just agreeing with everything it is shown.">
+              <h3 class="quiz-question">You are writing your own verification step for a different product. Which part of this prompt matters most to copy?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-quote" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Quoting the user's original request word for word</span>
+                </button>
+                <button class="quiz-option" data-value="opt-strict" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Telling it to be strict, and that not-clearly-visible counts as absent</span>
+                </button>
+                <button class="quiz-option" data-value="opt-list" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Formatting the checklist with dashes</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <div class="quiz-question-block"
+                 data-correct="opt-third"
+                 data-explanation-right="Exactly. Two states force a lie: either you claim it passed or you claim it failed, and neither is true. The third state is honest, and the interface can show it differently."
+                 data-explanation-wrong="Consider what you would have to display to a user if the check simply never ran. Marking it passed is a lie; marking it failed is a different lie.">
+              <div class="scenario-block">
+                <div class="scenario-context">
+                  <span class="scenario-label">Scenario</span>
+                  <p>You are adding an automated safety check to your own app. Sometimes the checking service is down.</p>
+                </div>
+              </div>
+              <h3 class="quiz-question">What is the lesson from this module?</h3>
+              <div class="quiz-options">
+                <button class="quiz-option" data-value="opt-fail" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Treat a failed check as a failed item — safer to be cautious</span>
+                </button>
+                <button class="quiz-option" data-value="opt-pass" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Treat a failed check as passed, so users are not blocked</span>
+                </button>
+                <button class="quiz-option" data-value="opt-third" onclick="selectOption(this)">
+                  <div class="quiz-option-radio"></div>
+                  <span>Give "not checked" its own state, and show it as its own thing</span>
+                </button>
+              </div>
+              <div class="quiz-feedback"></div>
+            </div>
+
+            <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+            <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>
