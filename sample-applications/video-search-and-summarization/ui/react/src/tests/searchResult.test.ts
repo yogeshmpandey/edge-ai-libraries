@@ -33,7 +33,7 @@ describe('search result presentation helpers', () => {
     expect(getSearchResultVideoId(videoFallback)).toBe('enriched-id');
   });
 
-  it('groups indices by tag, de-duplicates videos, and sorts by relevance', () => {
+  it('groups indices by tag, keeps every hit per video, and sorts by relevance', () => {
     const results = [
       createSearchResult({ metadata: { video_id: 'low', tags: 'shared', relevance_score: 0.2 } }),
       createSearchResult({ metadata: { video_id: 'high', tags: 'shared,other', relevance_score: 0.9 } }),
@@ -41,14 +41,14 @@ describe('search result presentation helpers', () => {
     ];
 
     expect(groupSearchResultIndicesByTag(results)).toEqual([
-      { tag: 'shared', resultIndices: [1, 0] },
-      { tag: 'other', resultIndices: [1] },
+      { tag: 'shared', resultIndices: [1, 2, 0], videoCount: 2 },
+      { tag: 'other', resultIndices: [1], videoCount: 1 },
     ]);
   });
 
   it('retains identified results without tags in the Untagged group', () => {
     const results = [createSearchResult({ metadata: { video_id: 'untagged', tags: '' }, video: { tags: [] } })];
 
-    expect(groupSearchResultIndicesByTag(results)).toEqual([{ tag: 'Untagged', resultIndices: [0] }]);
+    expect(groupSearchResultIndicesByTag(results)).toEqual([{ tag: 'Untagged', resultIndices: [0], videoCount: 1 }]);
   });
 });

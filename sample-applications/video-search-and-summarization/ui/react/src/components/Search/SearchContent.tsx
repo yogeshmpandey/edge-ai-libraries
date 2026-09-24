@@ -4,9 +4,19 @@ import { FC, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
 import { useTranslation } from 'react-i18next';
-import { Slider, Tag, Tooltip, Button, Accordion, AccordionItem } from '@carbon/react';
+import {
+  Slider,
+  Tag,
+  Tooltip,
+  Button,
+  Accordion,
+  AccordionItem,
+  InlineLoading,
+  SkeletonPlaceholder,
+  SkeletonText,
+} from '@carbon/react';
 import { RerunSearch, SearchActions, SearchSelector } from '../../redux/search/searchSlice';
-import { TimeFilterSelection } from '../../redux/search/search';
+import { SearchResult, TimeFilterSelection } from '../../redux/search/search';
 import TimeFilterControl from './TimeFilterControl';
 import { StateActionStatus } from '../../redux/summary/summary';
 import { VideoTile } from '../../redux/search/VideoTile';
@@ -17,6 +27,15 @@ import TelemetryAccordion from './TelemetryAccordion';
 import MapView from '../MapView/MapView';
 import { buildCameraMarkers, unmappedResultCount } from '../MapView/cameraMarkers';
 import { mapConfigSelector } from '../../redux/mapConfig/mapConfigSlice';
+
+// Keying by clip identity rather than array position keeps unchanged tiles mounted when a
+// watched query refreshes, so their <video> elements are not torn down and reloaded.
+const searchResultKey = (result: SearchResult, index: number): string => {
+  const videoId = result?.metadata?.video_id;
+  const timestamp = result?.metadata?.timestamp;
+  if (videoId === undefined || timestamp === undefined) return `result-${index}`;
+  return `${videoId}-${timestamp}`;
+};
 
 const QueryContentWrapper = styled.div`
   display: flex;
@@ -268,7 +287,7 @@ export const QuerySettings: FC = () => {
 };
 
 export const QueryInfo: FC = () => {
-  const { selectedQuery } = useAppSelector(SearchSelector);
+  const { selectedQuery, isSelectedRefreshing } = useAppSelector(SearchSelector);
   const { resultsView } = useAppSelector(uiSelector);
   const { hasCameraLocations } = useAppSelector(mapConfigSelector);
   const dispatch = useAppDispatch();
@@ -296,6 +315,11 @@ export const QueryInfo: FC = () => {
         </TagsContainer>
       )}
       <span style={{ flex: 1 }}></span>
+      {isSelectedRefreshing && (
+        <span data-testid='search-refreshing-indicator' style={{ marginRight: '0.5rem' }}>
+          <InlineLoading status='active' description={t('searchUpdating')} />
+        </span>
+      )}
       <Button
         kind='ghost'
         size='sm'
@@ -357,14 +381,46 @@ export const IntervalDisplay: FC = () => {
 
 const NoQuerySelected: FC = () => <NothingSelectedWrapper></NothingSelectedWrapper>;
 
+// Sized through CSS rather than an inline `style` prop, since older @carbon/react
+// typings do not declare `style` on SkeletonPlaceholder.
+const SkeletonTile = styled.div`
+  width: 100%;
+
+  .cds--skeleton__placeholder {
+    width: 100%;
+    height: 10rem;
+  }
+`;
+
+const SearchResultsSkeleton: FC<{ count?: number }> = ({ count = 4 }) => (
+  <div className='videos-container' data-testid='search-results-skeleton'>
+    {Array.from({ length: count }, (_, index) => (
+      <div className='video-tile' key={`skeleton-${index}`}>
+        <SkeletonTile>
+          <SkeletonPlaceholder />
+        </SkeletonTile>
+        <div className='relevance'>
+          <SkeletonText width='60%' />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 const VideosContainer: FC = () => {
-  const { selectedQuery, selectedResults, isSelectedInProgress, isSelectedHasError } = useAppSelector(SearchSelector);
+  const { selectedQuery, selectedResults, isSelectedInitialLoading, isSelectedHasError } =
+    useAppSelector(SearchSelector);
   const { t } = useTranslation();
 
   if (!selectedQuery) return null;
 
+  // Queries that already have results keep them mounted through both refreshes (see the
+  // QueryInfo "updating" chip) and failed re-runs, so these guards only apply when empty.
   if (selectedResults.length === 0) {
-    if (isSelectedInProgress || isSelectedHasError) return null;
+    if (isSelectedHasError) return null;
+
+    // First run has nothing worth preserving, so show placeholders instead of a blank pane.
+    if (isSelectedInitialLoading) return <SearchResultsSkeleton />;
 
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: '#525252', fontStyle: 'italic' }}>
@@ -376,8 +432,8 @@ const VideosContainer: FC = () => {
 
   return (
     <div className='videos-container'>
-      {selectedResults.map((_, index) => (
-        <VideoTile key={`result-${index}`} resultIndex={index} />
+      {selectedResults.map((result, index) => (
+        <VideoTile key={searchResultKey(result, index)} resultIndex={index} />
       ))}
     </div>
   );

@@ -117,7 +117,7 @@ describe('VideoGroupsView', () => {
     expect(screen.getByRole('heading', { name: /Untagged.*1.*videos/ })).toBeInTheDocument();
   });
 
-  it('sorts each group by relevance and de-duplicates the same video', () => {
+  it('sorts each group by relevance and keeps every hit of the same video', () => {
     const results = [
       makeResult('low', 'action', 0.2),
       makeResult('high', 'action', 0.9),
@@ -127,9 +127,10 @@ describe('VideoGroupsView', () => {
     renderView(makeStore(results));
 
     const relevanceScores = screen.getAllByText(/Relevance Score:/);
-    expect(relevanceScores).toHaveLength(2);
+    expect(relevanceScores).toHaveLength(3);
     expect(relevanceScores[0]).toHaveTextContent('Relevance Score: 0.900');
-    expect(relevanceScores[1]).toHaveTextContent('Relevance Score: 0.200');
+    expect(relevanceScores[1]).toHaveTextContent('Relevance Score: 0.700');
+    expect(relevanceScores[2]).toHaveTextContent('Relevance Score: 0.200');
   });
 
   it('renders the shared VideoTile template and normalized tag chips', () => {
@@ -174,5 +175,52 @@ describe('VideoGroupsView', () => {
 
     expect(container.querySelector('video source')?.getAttribute('src')).toContain('/datastore/playable/source.mp4');
     expect(screen.getByText('Video not available')).toBeInTheDocument();
+  });
+
+  describe('Multiple results per video', () => {
+    it('renders every hit when one video matches at several timestamps', () => {
+      const results = [12.26, 33.53, 59.8].map((timestamp, index) =>
+        makeResult('video-1', 'ceramic', 0.9 - index * 0.1, {
+          id: `result-${index + 1}`,
+          metadata: { timestamp },
+        }),
+      );
+
+      const { container } = renderView(makeStore(results));
+
+      expect(container.querySelectorAll('video')).toHaveLength(3);
+      expect(screen.getByText('Relevance Score: 0.900')).toBeInTheDocument();
+      expect(screen.getByText('Relevance Score: 0.800')).toBeInTheDocument();
+      expect(screen.getByText('Relevance Score: 0.700')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /ceramic.*1.*videos.*3.*results/ })).toBeInTheDocument();
+    });
+
+    it('keeps all hits across several videos sharing a tag', () => {
+      const results = [
+        ...[10, 20, 30].map((timestamp, index) =>
+          makeResult('video-1', 'action', 0.9, { id: `a-${index}`, metadata: { timestamp } }),
+        ),
+        ...[15, 25].map((timestamp, index) =>
+          makeResult('video-2', 'action', 0.8, { id: `b-${index}`, metadata: { timestamp } }),
+        ),
+      ];
+
+      const { container } = renderView(makeStore(results));
+
+      expect(container.querySelectorAll('video')).toHaveLength(5);
+      expect(screen.getByRole('heading', { name: /action.*2.*videos.*5.*results/ })).toBeInTheDocument();
+    });
+
+    it('shows the timestamp of each hit', () => {
+      const results = [
+        makeResult('video-1', 'action', 0.9, { id: 'result-1', metadata: { timestamp: 75.5 } }),
+        makeResult('video-1', 'action', 0.8, { id: 'result-2', metadata: { timestamp: 5 } }),
+      ];
+
+      renderView(makeStore(results));
+
+      expect(screen.getByText('01:15')).toBeInTheDocument();
+      expect(screen.getByText('00:05')).toBeInTheDocument();
+    });
   });
 });

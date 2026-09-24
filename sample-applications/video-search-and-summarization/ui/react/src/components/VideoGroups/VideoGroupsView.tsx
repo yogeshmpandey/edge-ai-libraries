@@ -3,7 +3,9 @@
 import { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
+import { InlineLoading } from '@carbon/react';
 import { useAppSelector } from '../../redux/store';
+import { SearchResult } from '../../redux/search/search';
 import { SearchSelector } from '../../redux/search/searchSlice';
 import { VideoTile } from '../../redux/search/VideoTile';
 import {
@@ -97,6 +99,16 @@ const VideoTag = styled.span`
   font-weight: 400;
 `;
 
+const TimestampBadge = styled.span`
+  background-color: var(--color-dark-7, #343a3f);
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+`;
+
 const VideoTags = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -124,10 +136,53 @@ const TAG_COLORS = [
   '#F5F5F5', // Light Grey
 ];
 
+const formatTimestamp = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
+  const total = Math.floor(seconds);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+};
+
+const getResultTimestamp = (result: SearchResult | undefined): number => {
+  const timestamp = result?.metadata?.timestamp;
+  return typeof timestamp === 'number' ? timestamp : 0;
+};
+
+/**
+ * Stable, position-independent keys so refreshing a watched query does not remount
+ * clips that are still in the result set. Identical video/timestamp pairs are rare
+ * but get a suffix so React keys stay unique.
+ */
+const buildResultKeys = (results: SearchResult[]): string[] => {
+  const seen = new Map<string, number>();
+  return results.map((result, index) => {
+    const videoId = getSearchResultVideoId(result) ?? `result-${index}`;
+    const baseKey = `${videoId}-${getResultTimestamp(result)}`;
+    const occurrence = seen.get(baseKey) ?? 0;
+    seen.set(baseKey, occurrence + 1);
+    return occurrence === 0 ? baseKey : `${baseKey}-${occurrence}`;
+  });
+};
+
 export const VideoGroupsView: FC = () => {
   const { t } = useTranslation();
-  const { selectedResults } = useAppSelector(SearchSelector);
+  const { selectedResults, isSelectedInitialLoading } = useAppSelector(SearchSelector);
   const tagGroups = useMemo(() => groupSearchResultIndicesByTag(selectedResults), [selectedResults]);
+  const resultKeys = useMemo(() => buildResultKeys(selectedResults ?? []), [selectedResults]);
+
+  // First run of the query: show placeholders rather than a misleading "no results" state.
+  // A refresh keeps its existing groups mounted and relies on the QueryInfo chip instead.
+  if (isSelectedInitialLoading) {
+    return (
+      <VideoGroupsContainer data-testid='video-groups-skeleton'>
+        <GroupHeader>{t('VideoGroups', 'Video Groups by Tags')}</GroupHeader>
+        <EmptyState>
+          <InlineLoading status='active' description={t('searchRunning')} />
+        </EmptyState>
+      </VideoGroupsContainer>
+    );
+  }
 
   // If no search results, show a helpful empty state
   if (!selectedResults || selectedResults.length === 0) {
@@ -162,21 +217,23 @@ export const VideoGroupsView: FC = () => {
         <TagGroup key={group.tag} $backgroundColor={TAG_COLORS[groupIndex % TAG_COLORS.length]}>
           <TagHeader>
             {group.tag}
-            <TagBadge>{group.resultIndices.length} videos</TagBadge>
+            <TagBadge>{group.videoCount} videos</TagBadge>
+            <TagBadge>{group.resultIndices.length} results</TagBadge>
           </TagHeader>
 
           <VideoGrid>
             {group.resultIndices.map((resultIndex) => {
               const result = selectedResults[resultIndex];
-              const videoId = getSearchResultVideoId(result) ?? String(resultIndex);
+              const resultKey = resultKeys[resultIndex];
               const tags = getSearchResultTags(result);
 
               return (
-                <VideoCard key={`${group.tag}-${videoId}`}>
+                <VideoCard key={`${group.tag}-${resultKey}`}>
                   <VideoTile resultIndex={resultIndex}>
                     <VideoTags>
+                      <TimestampBadge>{formatTimestamp(getResultTimestamp(result))}</TimestampBadge>
                       {tags.map((tag) => (
-                        <VideoTag key={`${videoId}-${tag}`}>{tag}</VideoTag>
+                        <VideoTag key={`${resultKey}-${tag}`}>{tag}</VideoTag>
                       ))}
                     </VideoTags>
                   </VideoTile>

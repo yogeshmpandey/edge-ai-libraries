@@ -58,7 +58,12 @@ from internal_types import (
     InternalSupportedModel,
 )
 from managers.pipeline_manager import PipelineManager
-from models import MODELS_PATH, SupportedModel, SupportedModelsManager
+from models import (
+    GENAI_SENTINEL_FILE,
+    MODELS_PATH,
+    SupportedModel,
+    SupportedModelsManager,
+)
 
 logger = logging.getLogger("model_manager")
 
@@ -97,6 +102,24 @@ HTTP_REQUEST_TIMEOUT_S: float = float(
 
 # Upload streaming chunk size.
 UPLOAD_CHUNK_SIZE: int = 8 * 1024 * 1024  # 8 MiB
+
+
+def _precision_is_complete(category: str | None, model_path: str) -> bool:
+    """Return True only when the model files at *model_path* are complete.
+
+    For GenAI models the path points at a directory.  Checking that the
+    directory exists is not enough — the download process creates it before
+    any weights are written, so a failed download (e.g. due to a missing or
+    invalid HF_TOKEN) can leave an empty or partially-populated directory
+    that still passes an ``os.path.exists`` check.
+
+    For all other model types the path points directly at the ``.xml``
+    artefact, so a plain existence check is sufficient.
+    """
+    if category == "genai":
+        return os.path.isfile(os.path.join(model_path, GENAI_SENTINEL_FILE))
+    return os.path.exists(model_path)
+
 
 # ----------------------------------------------------------------------
 # OMZ post-processing assets shipped with DLStreamer
@@ -179,6 +202,7 @@ class _InstalledModelRecord:
     source: InternalModelSource
     category: InternalModelCategory | None
     precisions: list[InternalModelPrecision] = field(default_factory=list)
+    description: str | None = None
 
 
 # ----------------------------------------------------------------------
@@ -318,12 +342,17 @@ class ModelManager:
                         for p in entry.get("precisions", [])
                         if "model_path" in p
                     ]
-                    # Prune entries whose files no longer exist on disk.
+                    category_raw: str | None = entry.get("category")
+                    # Prune entries whose files no longer exist on disk or are
+                    # incomplete (e.g. a GenAI directory without the sentinel
+                    # model file, left behind by a failed/interrupted download).
                     if not precisions or not any(
-                        os.path.exists(p.model_path) for p in precisions
+                        _precision_is_complete(category_raw, p.model_path)
+                        for p in precisions
                     ):
                         logger.info(
-                            "Pruning stale registry entry '%s' (files missing)", name
+                            "Pruning stale registry entry '%s' (files missing or incomplete)",
+                            name,
                         )
                         pruned += 1
                         continue
@@ -337,6 +366,7 @@ class ModelManager:
                             else None
                         ),
                         precisions=precisions,
+                        description=entry.get("description"),
                     )
                 except Exception:
                     logger.warning(
@@ -369,6 +399,7 @@ class ModelManager:
                         {"precision": p.precision, "model_path": p.model_path}
                         for p in r.precisions
                     ],
+                    "description": r.description,
                 }
                 for r in self._registry.values()
             ]
@@ -566,6 +597,7 @@ class ModelManager:
                     default=bool(used_by),
                     unsupported_devices=head.unsupported_devices or None,
                     download_request=self._lookup_download_request(name),
+                    description=getattr(head, "description", None),
                 )
             )
 
@@ -589,6 +621,7 @@ class ModelManager:
                     default=False,
                     unsupported_devices=None,
                     download_request=None,
+                    description=record.description,
                 )
             )
 
@@ -1306,17 +1339,29 @@ class ModelManager:
         # API reports the failed state (derived from the job).
         with self._registry_lock:
             record = self._registry.get(model_name)
-            if record is not None and not any(
-                os.path.exists(p.model_path) for p in record.precisions
-            ):
-                self._registry.pop(model_name, None)
-                self._save_registry_locked()
+            if record is not None:
+                category_raw = record.category.value if record.category else None
+                if not any(
+                    _precision_is_complete(category_raw, p.model_path)
+                    for p in record.precisions
+                ):
+                    self._registry.pop(model_name, None)
+                    self._save_registry_locked()
         logger.error("Model download job %s failed: %s", job_id, message)
 
     def _finalize_success(
         self, job_id: str, model_name: str, head: SupportedModel
     ) -> None:
-        """Mark the job as COMPLETED and update the registry."""
+        """Mark the job as COMPLETED and update the registry.
+
+        Verifies that the expected model files are present on disk before
+        trusting the model-download service's "completed" status.  The
+        service can report success while leaving only partial artefacts —
+        for example when a gated HuggingFace model is requested without a
+        valid HF_TOKEN, the service may download config/metadata files and
+        then exit cleanly, never writing the actual model weights.  In that
+        case the job is re-classified as FAILED with an informative message.
+        """
         # Refresh on-disk precision list from supported_models.yaml entries.
         entries = [
             m
@@ -1325,6 +1370,23 @@ class ModelManager:
         ]
         precisions = self._collect_precisions(entries)
         model_path = precisions[0].model_path if precisions else None
+
+        # Verify the expected files are actually on disk before registering.
+        if not any(e.exists_on_disk() for e in entries):
+            logger.warning(
+                "model-download reported success for '%s' (job %s) but the "
+                "expected model files are not present on disk — reclassifying "
+                "as FAILED.  If this is a gated model, ensure HF_TOKEN is set "
+                "correctly before retrying.",
+                model_name,
+                job_id,
+            )
+            self._fail_job(
+                job_id,
+                "Model was not successfully installed. "
+                "Check your Hugging Face access token and accept model license if needed. ",
+            )
+            return
 
         with self._jobs_lock:
             job = self._jobs.get(job_id)
@@ -1405,6 +1467,7 @@ class ModelManager:
             source=InternalModelSource.CUSTOM,
             category=spec.category,
             precisions=precisions,
+            description=spec.description,
         )
         self._upsert_registry_record(record)
 
@@ -1420,6 +1483,7 @@ class ModelManager:
             default=False,
             unsupported_devices=None,
             download_request=None,
+            description=record.description,
         )
         return model, 201, "Model uploaded successfully"
 

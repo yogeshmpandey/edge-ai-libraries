@@ -152,7 +152,7 @@ Show the user the service startup command, using only the plugins their request 
 
 ```bash
 # Clone (if not already done)
-git clone https://github.com/open-edge-platform/edge-ai-libraries.git
+git clone https://github.com/open-edge-platform/edge-ai-libraries.git -b main
 cd edge-ai-libraries/microservices/model-download
 
 # Set env vars
@@ -224,10 +224,10 @@ echo "$JOB_RESPONSE"
 # Response: {"job_ids": ["<uuid>"]}
 
 # 2. Extract job ID
-JOB_ID=$(echo "$JOB_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_ids'][0])")
+JOB_ID=$(echo "$JOB_RESPONSE" | jq -r '.job_ids[0]')
 
 # 3. Poll until completed or failed
-watch -n 5 "curl -s http://localhost:8200/api/v1/jobs/$JOB_ID | python3 -m json.tool"
+watch -n 5 "curl -s http://localhost:8200/api/v1/jobs/$JOB_ID | jq ."
 ```
 
 Job status values: `queued` → `downloading` / `converting` → `completed` / `failed`
@@ -240,10 +240,10 @@ If status is `failed`, read the `error` field and check [troubleshooting.md](./r
 
 ```bash
 # List all completed downloads
-curl -s http://localhost:8200/api/v1/models/results | python3 -m json.tool
+curl -s http://localhost:8200/api/v1/models/results | jq .
 
 # Check a specific model's jobs
-curl -s "http://localhost:8200/api/v1/models/jobs?model_name=<model-name>" | python3 -m json.tool
+curl -s "http://localhost:8200/api/v1/models/jobs?model_name=<model-name>" | jq .
 ```
 
 After confirming success, tell the user:
@@ -254,7 +254,7 @@ After confirming success, tell the user:
 **Important accuracy note for OpenVINO conversions:** Use `hub: "openvino"` with `is_ovms: true`
 for model conversion.
 
-**Quick alternative:** For one-shot, ephemeral container use (CI/CD, scripted workflows), use the `get_model.sh` one-liner 
+**Quick alternative:** For one-shot, ephemeral container use (CI/CD, scripted workflows), use the `get_model.sh` one-liner
 ```bash
 curl -sSLO https://raw.githubusercontent.com/open-edge-platform/edge-ai-libraries/main/microservices/model-download/scripts/get_model.sh
 source ./get_model.sh --model-name <model> --hub <hub> --plugins <plugins>

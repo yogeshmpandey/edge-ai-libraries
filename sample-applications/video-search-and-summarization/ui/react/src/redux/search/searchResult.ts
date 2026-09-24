@@ -6,6 +6,8 @@ import { SearchResult, SearchResultTag, SearchResultTags } from './search';
 export interface TagResultGroup {
   tag: string;
   resultIndices: number[];
+  /** Number of distinct videos among the group's results. */
+  videoCount: number;
 }
 
 const addTag = (tags: Set<string>, value: SearchResultTag): void => {
@@ -60,9 +62,12 @@ export const compareSearchResultsByRelevance = (left: SearchResult, right: Searc
   relevanceScore(right) - relevanceScore(left);
 
 /**
- * Group result indices by normalized tag, de-duplicating a video within each
- * group and sorting each group by relevance. Results with a video identity but
- * no tags are retained in the supplied untagged group.
+ * Group result indices by normalized tag and sort each group by relevance.
+ *
+ * Grouping is per search hit rather than per video: a query can return several
+ * hits from the same video at different timestamps, and every one of them stays
+ * visible. Results with a video identity but no tags are retained in the
+ * supplied untagged group.
  */
 export const groupSearchResultIndicesByTag = (
   results: SearchResult[] | null | undefined,
@@ -85,8 +90,6 @@ export const groupSearchResultIndicesByTag = (
         group = { resultIndices: [], videoIds: new Set<string>() };
         groups.set(tag, group);
       }
-      if (group.videoIds.has(videoId)) return;
-
       group.videoIds.add(videoId);
       group.resultIndices.push(resultIndex);
     });
@@ -97,5 +100,6 @@ export const groupSearchResultIndicesByTag = (
     resultIndices: group.resultIndices.sort((left, right) =>
       compareSearchResultsByRelevance(results[left], results[right]),
     ),
+    videoCount: group.videoIds.size,
   }));
 };

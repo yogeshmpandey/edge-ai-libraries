@@ -11,8 +11,11 @@ SUPPORTED_MODELS_FILE: str = os.environ.get(
 )
 # Path to the directory where models are stored
 MODELS_PATH: str = os.environ.get("MODELS_PATH", "/models/output")
+# Main language model file that every OpenVINO GenAI model must contain.
+GENAI_SENTINEL_FILE: str = "openvino_language_model.xml"
 
 logger = logging.getLogger("models")
+MAX_MODEL_DESCRIPTION_LENGTH = 200
 
 
 class SupportedModel:
@@ -35,6 +38,7 @@ class SupportedModel:
         hub: str | None = None,
         canonical_name: str | None = None,
         canonical_display_name: str | None = None,
+        description: str | None = None,
     ) -> None:
         """
         Initializes the SupportedModel instance.
@@ -53,6 +57,7 @@ class SupportedModel:
         """
         self.name: str = name
         self.display_name: str = display_name
+        self.description: str | None = description
         # Canonical (YAML-level) identifiers. For model-proc variants
         # ``name``/``display_name`` carry suffixes such as
         # ``_preproc-aspect-ratio`` / ``[model-proc: ...]`` while the
@@ -95,18 +100,34 @@ class SupportedModel:
         """
         Checks if the model exists on disk.
 
-        For `genai` models, `model_path` is expected to be a directory.
+        For `genai` models, `model_path` is expected to be a directory that
+        contains the main OpenVINO language model file
+        (``GENAI_SENTINEL_FILE``).  Checking only for the directory is
+        not sufficient: the download process creates the output directory early
+        and may fail part-way through (e.g. due to a missing or invalid
+        HF_TOKEN or a network error), leaving an empty or partial directory
+        behind.  The presence of ``GENAI_SENTINEL_FILE`` confirms that
+        the language model weights were actually downloaded.
 
         Returns:
             bool: True if the model exists, False otherwise.
         """
         if self.model_type == "genai":
-            exists = os.path.isdir(self.model_path_full)
-            if not exists:
+            if not os.path.isdir(self.model_path_full):
                 logger.debug(
                     f"GenAI model directory not found for '{self.display_name}' at path '{self.model_path_full}'"
                 )
-            return exists
+                return False
+            # Require the main language model file to be present so that an
+            # empty or partially-downloaded directory is not treated as installed.
+            main_model_file = os.path.join(self.model_path_full, GENAI_SENTINEL_FILE)
+            if not os.path.isfile(main_model_file):
+                logger.debug(
+                    f"GenAI model directory exists but '{GENAI_SENTINEL_FILE}' is missing "
+                    f"for '{self.display_name}' at '{main_model_file}'"
+                )
+                return False
+            return True
 
         return os.path.isfile(self.model_path_full)
 
@@ -186,6 +207,20 @@ class SupportedModelsManager:
                     # Validate and extract top-level required fields
                     name = require_str_field(entry, "name", idx)
                     display_name = require_str_field(entry, "display_name", idx)
+                    description_raw = entry.get("description")
+                    description = (
+                        description_raw.strip()
+                        if isinstance(description_raw, str) and description_raw.strip()
+                        else None
+                    )
+                    if (
+                        description is not None
+                        and len(description) > MAX_MODEL_DESCRIPTION_LENGTH
+                    ):
+                        raise ValueError(
+                            f"Model description in supported model entry at index {idx} "
+                            f"must be at most {MAX_MODEL_DESCRIPTION_LENGTH} characters."
+                        )
                     source = require_str_field(entry, "source", idx)
                     hub_raw = entry.get("hub")
                     hub = (
@@ -196,7 +231,6 @@ class SupportedModelsManager:
                     model_type = require_str_field(entry, "type", idx)
                     unsupported_devices = entry.get("unsupported_devices", None)
                     extra_model_procs = entry.get("extra_model_procs", None)
-
                     # Validate precisions list
                     precisions = entry.get("precisions")
                     if not isinstance(precisions, list) or len(precisions) == 0:
@@ -251,6 +285,7 @@ class SupportedModelsManager:
                                 hub=hub,
                                 canonical_name=name,
                                 canonical_display_name=display_name,
+                                description=description,
                             )
                         )
 
@@ -283,6 +318,7 @@ class SupportedModelsManager:
                                             hub=hub,
                                             canonical_name=name,
                                             canonical_display_name=display_name,
+                                            description=description,
                                         )
                                     )
 
