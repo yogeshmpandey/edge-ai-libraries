@@ -41,7 +41,6 @@ const Wrapper = styled.div`
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 24rem;
   overflow: hidden;
   background: #dde3e8;
   touch-action: none;

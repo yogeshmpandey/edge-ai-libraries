@@ -463,7 +463,19 @@ const MapResultsContainer: FC = () => {
   const unmappedCount = useMemo(() => unmappedResultCount(selectedResults, cameras), [selectedResults, cameras]);
 
   return (
-    <div style={{ width: '100%', flex: '1 1 0%', minHeight: 0 }}>
+    // Like the results list, the map takes the remaining height and shrinks when the telemetry
+    // panel expands. Clipping and isolating it keeps the map's z-indexed overlays from painting
+    // over sibling panels.
+    <div
+      style={{
+        position: 'relative',
+        isolation: 'isolate',
+        width: '100%',
+        flex: '1 1 0%',
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
+    >
       <MapView markers={markers} unmappedCount={unmappedCount} />
     </div>
   );
