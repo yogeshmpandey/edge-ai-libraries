@@ -1,38 +1,46 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import { I18nextProvider } from 'react-i18next';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { configureStore } from '@reduxjs/toolkit';
 import { PromptInput, PromptInputProps } from '../components/Prompts/PromptInput';
-import { UIActions, UISlice } from '../redux/ui/ui.slice';
+import { UIActions } from '../redux/ui/ui.slice';
 import { UISliceState } from '../redux/ui/ui.model';
 import i18n from '../utils/i18n';
+import { createTestStore, createUiState, TestStore } from './testUtils';
+
+interface MockButtonProps {
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  children?: ReactNode;
+  label: string;
+  size?: string;
+  kind?: string;
+}
 
 // Mock Carbon components
 vi.mock('@carbon/react', () => ({
-  IconButton: ({ onClick, children, label, size, kind }: any) => (
+  IconButton: ({ onClick, children, label, size, kind }: MockButtonProps) => (
     <button data-testid={`icon-button-${label}`} onClick={onClick} data-size={size} data-kind={kind}>
       {children}
     </button>
   ),
-  Toggletip: ({ children }: any) => <div data-testid="toggletip">{children}</div>,
-  ToggletipButton: ({ onClick, children, label }: any) => (
+  Toggletip: ({ children }: { children?: ReactNode }) => <div data-testid='toggletip'>{children}</div>,
+  ToggletipButton: ({ onClick, children, label }: MockButtonProps) => (
     <button data-testid={`toggletip-button-${label}`} onClick={onClick}>
       {children}
     </button>
   ),
-  ToggletipContent: ({ children }: any) => <div data-testid="toggletip-content">{children}</div>,
+  ToggletipContent: ({ children }: { children?: ReactNode }) => <div data-testid='toggletip-content'>{children}</div>,
 }));
 
 // Mock Carbon icons
 vi.mock('@carbon/icons-react', () => ({
-  Edit: () => <div data-testid="edit-icon">Edit</div>,
-  Information: () => <div data-testid="information-icon">Information</div>,
-  Reset: () => <div data-testid="reset-icon">Reset</div>,
+  Edit: () => <div data-testid='edit-icon'>Edit</div>,
+  Information: () => <div data-testid='information-icon'>Information</div>,
+  Reset: () => <div data-testid='reset-icon'>Reset</div>,
 }));
-
 
 // Mock react-i18next
 vi.mock('react-i18next', async (importOriginal) => {
@@ -50,20 +58,7 @@ vi.mock('react-i18next', async (importOriginal) => {
 
 // Create mock store
 const createMockStore = (initialState: Partial<UISliceState> = {}) => {
-  return configureStore({
-    reducer: {
-      ui: UISlice.reducer,
-    },
-    preloadedState: {
-      ui: {
-        promptEditing: null,
-        selectedMux: 1,
-        groupByTag: false,
-        showVideoGroups: false,
-        ...initialState,
-      },
-    },
-  });
+  return createTestStore({ ui: createUiState(initialState) });
 };
 
 const defaultProps: PromptInputProps = {
@@ -78,13 +73,11 @@ const defaultProps: PromptInputProps = {
   reset: vi.fn(),
 };
 
-const renderWithProviders = (component: React.ReactElement, store: any) => {
+const renderWithProviders = (component: React.ReactElement, store: TestStore) => {
   return render(
     <Provider store={store}>
-      <I18nextProvider i18n={i18n}>
-        {component}
-      </I18nextProvider>
-    </Provider>
+      <I18nextProvider i18n={i18n}>{component}</I18nextProvider>
+    </Provider>,
   );
 };
 
@@ -280,18 +273,17 @@ describe('PromptInput Component', () => {
       const onChangeMock = vi.fn();
       const store = createMockStore();
 
-      renderWithProviders(
-        <PromptInput {...defaultProps} onChange={onChangeMock} />,
-        store
-      );
+      renderWithProviders(<PromptInput {...defaultProps} onChange={onChangeMock} />, store);
 
       // First submission
       act(() => {
-        store.dispatch(UIActions.openPromptModal({
-          heading: 'Test Heading',
-          openToken: 'TEST_OPENER',
-          prompt: 'Test Prompt',
-        }));
+        store.dispatch(
+          UIActions.openPromptModal({
+            heading: 'Test Heading',
+            openToken: 'TEST_OPENER',
+            prompt: 'Test Prompt',
+          }),
+        );
         store.dispatch(UIActions.submitPromptModal('First Value'));
       });
 
@@ -302,11 +294,13 @@ describe('PromptInput Component', () => {
       // Second submission with different opener
       onChangeMock.mockClear();
       act(() => {
-        store.dispatch(UIActions.openPromptModal({
-          heading: 'Test Heading',
-          openToken: 'DIFFERENT_OPENER',
-          prompt: 'Test Prompt',
-        }));
+        store.dispatch(
+          UIActions.openPromptModal({
+            heading: 'Test Heading',
+            openToken: 'DIFFERENT_OPENER',
+            prompt: 'Test Prompt',
+          }),
+        );
         store.dispatch(UIActions.submitPromptModal('Second Value'));
       });
 
@@ -333,10 +327,10 @@ describe('PromptInput Component', () => {
 
     it('should render with different description and prompt in toggletip content', () => {
       const store = createMockStore();
-      const props = { 
-        ...defaultProps, 
+      const props = {
+        ...defaultProps,
         description: 'Custom Description',
-        prompt: 'Custom Prompt Content'
+        prompt: 'Custom Prompt Content',
       };
       renderWithProviders(<PromptInput {...props} />, store);
 
@@ -346,11 +340,11 @@ describe('PromptInput Component', () => {
 
     it('should handle empty string props gracefully', () => {
       const store = createMockStore();
-      const props = { 
-        ...defaultProps, 
+      const props = {
+        ...defaultProps,
         label: '',
         description: '',
-        prompt: ''
+        prompt: '',
       };
       renderWithProviders(<PromptInput {...props} />, store);
 
@@ -413,17 +407,17 @@ describe('PromptInput Component', () => {
       const store = createMockStore();
       const onChangeMock = vi.fn();
       const resetMock = vi.fn();
-      const props = { 
-        ...defaultProps, 
+      const props = {
+        ...defaultProps,
         prompt: 'Modified Prompt',
         onChange: onChangeMock,
-        reset: resetMock 
+        reset: resetMock,
       };
       renderWithProviders(<PromptInput {...props} />, store);
 
       // Click edit button
       fireEvent.click(screen.getByTestId('icon-button-editPrompt'));
-      
+
       // Click reset button
       fireEvent.click(screen.getByTestId('icon-button-ResetDefault'));
 

@@ -11,6 +11,8 @@ spec:
       app: {{ .Values.name }}
   template:
     metadata:
+      annotations:
+        checksum/map-config: {{ include (print $.Template.BasePath "/vss-ui-map-config-configmap.yaml") . | sha256sum }}
       labels:
         app: {{ .Values.name }}
     spec:
@@ -25,6 +27,11 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          volumeMounts:
+            - name: map-config
+              mountPath: /user/share/nginx/html/map-config.json
+              subPath: map-config.json
+              readOnly: true
           env:
             - name: APP_ENDPOINT_URL
               value: "{{ .Values.pipelineManagerEndpoint }}"
@@ -44,3 +51,10 @@ spec:
               value: "{{ .Values.feature.search }}"
             - name: APP_FEATURE_MUX
               value: "{{ .Values.feature.mux }}"
+      volumes:
+        - name: map-config
+          configMap:
+            name: {{ include "vssui.fullname" . }}-map-config
+            items:
+              - key: map-config.json
+                path: map-config.json

@@ -23,10 +23,11 @@ import { FEATURE_STATE, FeatureMux } from './utils/constant.ts';
 import { SearchActions } from './redux/search/searchSlice.ts';
 import { SearchQuery } from './redux/search/search.ts';
 import { useDocumentTitle } from './hooks/useDocumentTitle.ts';
+import { LoadMapConfig } from './redux/mapConfig/mapConfigSlice.ts';
 
 const App: FC = () => {
   const { summaryIds } = useAppSelector(SummarySelector);
-  
+
   // Use the custom hook to manage document title
   useDocumentTitle();
 
@@ -41,6 +42,10 @@ const App: FC = () => {
       throw new Error(`Feature Mux ${FEATURE_MUX} is not supported`);
     }
   });
+
+  useEffect(() => {
+    dispatch(LoadMapConfig());
+  }, [dispatch]);
 
   useEffect(() => {
     const connectedSockets = connectedSocketsRef.current;

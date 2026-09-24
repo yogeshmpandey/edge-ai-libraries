@@ -10,6 +10,7 @@ import { VideoFrameReducer } from './summary/videoFrameSlice.ts';
 import { UIReducer } from './ui/ui.slice.ts';
 import { VideoReducers } from './video/videoSlice.ts';
 import { SearchReducers } from './search/searchSlice.ts';
+import { MapConfigReducer } from './mapConfig/mapConfigSlice.ts';
 
 export const loadFromLocalStorage = () => {
   try {
@@ -17,6 +18,10 @@ export const loadFromLocalStorage = () => {
     if (serialisedState === null) return undefined;
     const state = JSON.parse(serialisedState);
     delete state.ui;
+    // The whole store is persisted to localStorage. A stale persisted copy of
+    // mapConfig would shadow an operator's edited map-config.json on reload,
+    // defeating the point of that file being runtime-editable.
+    delete state.mapConfig;
     return state;
   } catch (err) {
     console.warn(err);
@@ -33,17 +38,20 @@ export const saveToLocalStorage = (state: ReturnType<typeof store.getState>) => 
   }
 };
 
+export const rootReducer = combineReducers({
+  // conversations: conversationReducer,
+  videoChunks: VideoChunkReducer,
+  videoFrames: VideoFrameReducer,
+  videos: VideoReducers,
+  notifications: notificationReducer,
+  summaries: SummaryReducers,
+  search: SearchReducers,
+  ui: UIReducer,
+  mapConfig: MapConfigReducer,
+});
+
 const store = configureStore({
-  reducer: combineReducers({
-    // conversations: conversationReducer,
-    videoChunks: VideoChunkReducer,
-    videoFrames: VideoFrameReducer,
-    videos: VideoReducers,
-    notifications: notificationReducer,
-    summaries: SummaryReducers,
-    search: SearchReducers,
-    ui: UIReducer,
-  }),
+  reducer: rootReducer,
   devTools: import.meta.env.PROD || true,
   preloadedState: loadFromLocalStorage(),
   middleware: (getDefaultMiddleware) => getDefaultMiddleware(),

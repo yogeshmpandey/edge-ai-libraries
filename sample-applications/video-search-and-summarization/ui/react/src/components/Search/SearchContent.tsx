@@ -1,6 +1,6 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-import { FC } from 'react';
+import { FC, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppDispatch, useAppSelector } from '../../redux/store';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +11,12 @@ import TimeFilterControl from './TimeFilterControl';
 import { StateActionStatus } from '../../redux/summary/summary';
 import { VideoTile } from '../../redux/search/VideoTile';
 import { UIActions, uiSelector } from '../../redux/ui/ui.slice';
+import { ResultsView } from '../../redux/ui/ui.model';
 import VideoGroupsView from '../VideoGroups/VideoGroupsView';
 import TelemetryAccordion from './TelemetryAccordion';
+import MapView from '../MapView/MapView';
+import { buildCameraMarkers, unmappedResultCount } from '../MapView/cameraMarkers';
+import { mapConfigSelector } from '../../redux/mapConfig/mapConfigSlice';
 
 const QueryContentWrapper = styled.div`
   display: flex;
@@ -25,20 +29,6 @@ const QueryContentWrapper = styled.div`
     flex-flow: row wrap;
     overflow-x: hidden;
     overflow-y: auto;
-    .video-tile {
-      position: relative;
-      width: 20rem;
-      margin: 1rem;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      border-radius: 0.5rem;
-      overflow: hidden;
-      video {
-        width: 100%;
-      }
-      .relevance {
-        padding: 1rem;
-      }
-    }
   }
 `;
 
@@ -77,7 +67,7 @@ const ControlCard = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.75rem;
-  border: .1px solid #a8a8a8;
+  border: 0.1px solid #a8a8a8;
   border-radius: 0.5rem;
   background: #f4f4f4;
 `;
@@ -88,7 +78,6 @@ const SliderBlock = styled.div`
   gap: 0.25rem;
   min-width: 8rem;
 `;
-
 
 const QueryBar = styled.div`
   display: flex;
@@ -116,6 +105,12 @@ const QueryBar = styled.div`
     white-space: nowrap;
     max-width: 40rem;
   }
+`;
+
+const ViewActionSeparator = styled.span`
+  color: #8d8d8d;
+  line-height: 2rem;
+  user-select: none;
 `;
 
 const SliderLabel = styled.div`
@@ -170,30 +165,30 @@ const ErrorMessageWrapper = styled.div`
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  
+
   .error-icon {
     font-size: 1.5rem;
     flex-shrink: 0;
   }
-  
+
   .error-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
-  
+
   .error-title {
     font-weight: 600;
     color: #da1e28;
     font-size: 1.1rem;
   }
-  
+
   .error-text {
     color: #525252;
     line-height: 1.4;
   }
-  
+
   .error-actions {
     display: flex;
     gap: 0.5rem;
@@ -274,10 +269,16 @@ export const QuerySettings: FC = () => {
 
 export const QueryInfo: FC = () => {
   const { selectedQuery } = useAppSelector(SearchSelector);
+  const { resultsView } = useAppSelector(uiSelector);
+  const { hasCameraLocations } = useAppSelector(mapConfigSelector);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
 
   if (!selectedQuery) return null;
+
+  const toggleResultsView = (nextView: ResultsView) => {
+    dispatch(UIActions.setResultsView(resultsView === nextView ? ResultsView.LIST : nextView));
+  };
 
   return (
     <QueryBar>
@@ -298,15 +299,32 @@ export const QueryInfo: FC = () => {
       <Button
         kind='ghost'
         size='sm'
-        onClick={() => {
-          // toggle the grouped video view on/off
-          // eslint-disable-next-line no-console
-          console.log('Group by Tag button clicked (toggle)');
-          dispatch(UIActions.toggleVideoGroups());
-        }}
+        aria-pressed={resultsView === ResultsView.LIST}
+        onClick={() => dispatch(UIActions.setResultsView(ResultsView.LIST))}
+      >
+        {t('ResultsList', 'Results')}
+      </Button>
+      {hasCameraLocations && (
+        <Button
+          kind='ghost'
+          size='sm'
+          aria-pressed={resultsView === ResultsView.MAP}
+          onClick={() => toggleResultsView(ResultsView.MAP)}
+        >
+          {t('MapView', 'Map View')}
+        </Button>
+      )}
+      <Button
+        kind='ghost'
+        size='sm'
+        aria-pressed={resultsView === ResultsView.GROUPS}
+        onClick={() => toggleResultsView(ResultsView.GROUPS)}
       >
         {t('GroupByTag')}
       </Button>
+      <ViewActionSeparator data-testid='view-action-separator' aria-hidden='true'>
+        |
+      </ViewActionSeparator>
       <Button
         kind='ghost'
         size='sm'
@@ -322,7 +340,12 @@ export const QueryInfo: FC = () => {
 
 export const IntervalDisplay: FC = () => {
   const { selectedQuery } = useAppSelector(SearchSelector);
-  if (!selectedQuery || !selectedQuery.timeFilter || !selectedQuery.timeFilter.value || !selectedQuery.timeFilter.unit) {
+  if (
+    !selectedQuery ||
+    !selectedQuery.timeFilter ||
+    !selectedQuery.timeFilter.value ||
+    !selectedQuery.timeFilter.unit
+  ) {
     return null;
   }
 
@@ -340,7 +363,9 @@ const VideosContainer: FC = () => {
 
   if (!selectedQuery) return null;
 
-  if (selectedResults.length === 0 && !isSelectedInProgress && !isSelectedHasError) {
+  if (selectedResults.length === 0) {
+    if (isSelectedInProgress || isSelectedHasError) return null;
+
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: '#525252', fontStyle: 'italic' }}>
         <p>{t('noSearchResults', 'No videos found matching your search query.')}</p>
@@ -348,8 +373,6 @@ const VideosContainer: FC = () => {
       </div>
     );
   }
-
-  if (isSelectedHasError) return null;
 
   return (
     <div className='videos-container'>
@@ -376,14 +399,53 @@ const ErrorMessage: FC = () => {
   );
 };
 
+const MapResultsContainer: FC = () => {
+  const { selectedResults } = useAppSelector(SearchSelector);
+  const { cameras } = useAppSelector(mapConfigSelector);
+
+  const markers = useMemo(() => buildCameraMarkers(selectedResults, cameras), [selectedResults, cameras]);
+  const unmappedCount = useMemo(() => unmappedResultCount(selectedResults, cameras), [selectedResults, cameras]);
+
+  return (
+    <div style={{ width: '100%', flex: '1 1 0%', minHeight: 0 }}>
+      <MapView markers={markers} unmappedCount={unmappedCount} />
+    </div>
+  );
+};
+
 export const SearchContent: FC = () => {
-  const hasSelectedQuery = useAppSelector((state) => Boolean(SearchSelector(state).selectedQuery));
-  const isSelectedHasError = useAppSelector((state) => SearchSelector(state).isSelectedHasError);
-  const { showVideoGroups } = useAppSelector(uiSelector);
+  const { selectedQuery, selectedResults, isSelectedHasError } = useAppSelector(SearchSelector);
+  const hasSelectedQuery = Boolean(selectedQuery);
+  const { resultsView } = useAppSelector(uiSelector);
+  const { hasCameraLocations } = useAppSelector(mapConfigSelector);
+  const dispatch = useAppDispatch();
+
+  // If the mapping disappears (e.g. the operator cleared map-config.json)
+  // while Map View is active, fall back to the flat list rather than leaving
+  // the user on a view that can no longer be reached from the controls.
+  useEffect(() => {
+    if (resultsView === ResultsView.MAP && !hasCameraLocations) {
+      dispatch(UIActions.setResultsView(ResultsView.LIST));
+    }
+  }, [resultsView, hasCameraLocations, dispatch]);
+
+  const renderResults = () => {
+    if (isSelectedHasError && selectedResults.length === 0) return <ErrorMessage />;
+
+    switch (resultsView) {
+      case ResultsView.GROUPS:
+        return <VideoGroupsView />;
+      case ResultsView.MAP:
+        return hasCameraLocations ? <MapResultsContainer /> : <VideosContainer />;
+      case ResultsView.LIST:
+      default:
+        return <VideosContainer />;
+    }
+  };
 
   return (
     <>
-      <QueryContentWrapper>
+      <QueryContentWrapper style={{ width: '100%', height: '100%', minHeight: 0 }}>
         {!hasSelectedQuery && <NoQuerySelected />}
 
         {hasSelectedQuery && (
@@ -391,7 +453,7 @@ export const SearchContent: FC = () => {
             <QuerySettings />
             <QueryInfo />
             <IntervalDisplay />
-            {showVideoGroups ? <VideoGroupsView /> : isSelectedHasError ? <ErrorMessage /> : <VideosContainer />}
+            {renderResults()}
           </>
         )}
         <TelemetryAccordion />

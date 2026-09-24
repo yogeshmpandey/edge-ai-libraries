@@ -47,6 +47,16 @@ describe('ScoreDisplay', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('can hide the raw, peak, and breakdown controls while keeping relevance', () => {
+    render(<ScoreDisplay relevanceScore={1.0} scoreBreakdown={breakdown} showDetails={false} />);
+
+    expect(screen.getByText('Relevance Score: 1.000')).toBeInTheDocument();
+    expect(screen.queryByText(/^raw /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^peak /)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Score breakdown' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Raw range/ })).not.toBeInTheDocument();
+  });
+
   it('falls back to N/A when the relevance score is missing', () => {
     render(<ScoreDisplay relevanceScore={undefined} />);
 
@@ -83,9 +93,7 @@ describe('ScoreDisplay', () => {
   });
 
   it('flags a weak match when the peak frame similarity is low', () => {
-    render(
-      <ScoreDisplay relevanceScore={1.0} scoreBreakdown={{ ...breakdown, max_frame_score: 0.05 }} />,
-    );
+    render(<ScoreDisplay relevanceScore={1.0} scoreBreakdown={{ ...breakdown, max_frame_score: 0.05 }} />);
 
     expect(screen.getByText('weak match')).toBeInTheDocument();
   });

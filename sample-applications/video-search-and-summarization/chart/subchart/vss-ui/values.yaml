@@ -4,7 +4,6 @@ global:
     http_proxy: ""
     https_proxy: ""
 
-
 name: vssui
 image:
   repository: intel/vss-ui
@@ -12,10 +11,10 @@ image:
   pullPolicy: IfNotPresent
   resources: {}
 
-containerPortName: vssui-port  # Optional name to refer containerPort
+containerPortName: vssui-port # Optional name to refer containerPort
 service:
   type: ClusterIP
-  port: 80  # Port on which service listens for incoming connection
+  port: 80 # Port on which service listens for incoming connection
 
 pipelineManagerEndpoint: "/manager"
 assetsEndpoint: "/minio"
@@ -24,3 +23,13 @@ feature:
   summary: ""
   search: ""
   mux: ""
+
+# Runtime-editable config for the camera-based Map View (docs/user-guide/camera-map-view.md).
+# Rendered to a ConfigMap and mounted read-only over the built image's map-config.json,
+# so cameras can be changed with `helm upgrade` and no image rebuild.
+mapConfig:
+  cameras: {}
+    # lobby-cam:
+    #   lat: 37.3875
+    #   lon: -121.9636
+    #   label: "Lobby Camera"

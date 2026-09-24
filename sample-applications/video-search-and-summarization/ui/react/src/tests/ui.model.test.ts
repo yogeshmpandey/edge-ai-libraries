@@ -1,12 +1,7 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
-import { 
-  PromptEditing, 
-  UISliceState, 
-  OpenPromptModal,
-  MuxFeatures
-} from '../redux/ui/ui.model';
+import { PromptEditing, UISliceState, OpenPromptModal, MuxFeatures, ResultsView } from '../redux/ui/ui.model';
 
 describe('UI Model Interfaces', () => {
   describe('PromptEditing interface', () => {
@@ -52,10 +47,9 @@ describe('UI Model Interfaces', () => {
       const uiState: UISliceState = {
         promptEditing,
         selectedMux: MuxFeatures.SUMMARY,
-        groupByTag: false,
-        showVideoGroups: false,
+        resultsView: ResultsView.LIST,
       };
-      
+
       expect(uiState.promptEditing).toBe(promptEditing);
       expect(uiState.promptEditing?.open).toBe('state-test');
       expect(uiState.promptEditing?.heading).toBe('State Test');
@@ -65,8 +59,7 @@ describe('UI Model Interfaces', () => {
       const uiState: UISliceState = {
         promptEditing: null,
         selectedMux: MuxFeatures.SEARCH,
-        groupByTag: false,
-        showVideoGroups: false,
+        resultsView: ResultsView.LIST,
       };
 
       expect(uiState.promptEditing).toBeNull();
@@ -84,6 +77,14 @@ describe('UI Model Interfaces', () => {
       expect(openPromptModal.heading).toBe('Open Prompt Modal');
       expect(openPromptModal.prompt).toBe('Please enter your input');
       expect(openPromptModal.openToken).toBe('token-abc-123');
+    });
+  });
+
+  describe('ResultsView enum', () => {
+    it('should define LIST, GROUPS, and MAP values', () => {
+      expect(ResultsView.LIST).toBe('list');
+      expect(ResultsView.GROUPS).toBe('groups');
+      expect(ResultsView.MAP).toBe('map');
     });
   });
 });

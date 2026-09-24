@@ -49,39 +49,55 @@ export interface ScoreBreakdown {
   global_peak_timestamp?: number | null;
 }
 
+export interface SearchResultTagObject {
+  tag?: string;
+  name?: string;
+  label?: string;
+}
+
+export type SearchResultTag = string | SearchResultTagObject;
+export type SearchResultTags = string | SearchResultTag[];
+
+export interface SearchResultVideoMetadata {
+  tags?: SearchResultTags;
+}
+
+export interface SearchResultMetadata {
+  bucket_name: string;
+  clip_duration: number;
+  tags: SearchResultTags;
+  video_metadata?: SearchResultVideoMetadata;
+  date: string;
+  date_time: string;
+  day: number;
+  fps: number;
+  frames_in_clip: number;
+  hours: number;
+  id: string;
+  interval_num: number;
+  minutes: number;
+  month: number;
+  seconds: number;
+  time: string;
+  timestamp: number;
+  total_frames: number;
+  video: string;
+  video_id: string;
+  video_path: string;
+  video_rel_url: string;
+  video_remote_path: string;
+  video_url: string;
+  year: number;
+  relevance_score: number;
+  score_breakdown?: ScoreBreakdown;
+}
+
 export interface SearchResult {
   id: string | null;
-  metadata: {
-    bucket_name: string;
-    clip_duration: number;
-    tags: string;
-    date: string;
-    date_time: string;
-    day: number;
-    fps: number;
-    frames_in_clip: number;
-    hours: number;
-    id: string;
-    interval_num: number;
-    minutes: number;
-    month: number;
-    seconds: number;
-    time: string;
-    timestamp: number;
-    total_frames: number;
-    video: string;
-    video_id: string;
-    video_path: string;
-    video_rel_url: string;
-    video_remote_path: string;
-    video_url: string;
-    year: number;
-    relevance_score: number;
-    score_breakdown?: ScoreBreakdown;
-  };
+  metadata: SearchResultMetadata;
   page_content: string;
   type: string;
-  video: Video;
+  video?: Video | null;
 }
 
 export enum SearchQueryStatus {

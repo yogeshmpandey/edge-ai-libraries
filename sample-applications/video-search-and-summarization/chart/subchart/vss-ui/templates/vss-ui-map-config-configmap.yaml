@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vssui.fullname" . }}-map-config
+  labels:
+    app: {{ .Values.name }}
+data:
+  # Runtime-editable Map View config (see docs/user-guide/camera-map-view.md).
+  # Mounted read-only into the UI image alongside its static assets, so it can
+  # be changed with `helm upgrade` and no image rebuild.
+  map-config.json: |
+    {{- $mapConfig := dict "cameras" (.Values.mapConfig.cameras | default dict) }}
+    {{- toPrettyJson $mapConfig | nindent 4 }}

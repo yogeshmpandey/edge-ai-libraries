@@ -18,6 +18,18 @@ export const enTranslations = {
   cameraConfigSaveFailed: 'Failed to update camera configuration',
   GroupByTag: 'Group by Tag',
   VideoGroups: 'Video Groups by Tags',
+  ResultsList: 'Results',
+  MapView: 'Map View',
+  MapViewTitle: 'Camera Map',
+  NoCameraLocations: 'No camera locations to show for this search.',
+  CameraResults: 'Results for {{camera}}',
+  MoreResults: '+{{count}} more',
+  UnmappedResults: '{{count}} results are not shown on the map because their camera tag has no configured location.',
+  FitCameras: 'Fit all cameras',
+  ZoomIn: 'Zoom in',
+  ZoomOut: 'Zoom out',
+  CloseCameraPanel: 'Close',
+  MapAttribution: '© OpenStreetMap contributors',
   NoVideosAvailable: 'No Videos Available',
   NoVideosDescription: 'Upload some videos to see them grouped by tags.',
   SearchRerun: 'Re-run search',
@@ -47,13 +59,20 @@ export const enTranslations = {
   timeFilterWeeks: 'Weeks',
   searchInProgress: 'searching',
   customVideoTags: 'Custom Tags',
-  videoTagsinfo: 'Custom tags help organize and search your videos. Add descriptive keywords separated by commas (e.g., "outdoor, interview, drone"). These tags will be used to improve search relevance and categorization.',
-  videoSummaryinfo: 'Provide a clear and descriptive title for your video summary.By default, it matches the video label, but you can customize it for better clarity.',
-  ChunkDurationInfo: 'Set the duration (in seconds) for each video chunk. This determines how long each chunk will be for summary and search.',
-  FramePerChunkInfo: 'Set the number of frames to sample per chunk. This controls the granularity of frame selection for each chunk.',
-  FramesOverlapInfo: 'Number of frames that overlap between consecutive chunks. Useful for capturing context across chunk boundaries.',
-  MultiFrameInfo: 'Batch size of frames used for summary creation. Higher values may improve summary quality but increase processing time.',
-  ChunkingPipelineInfo: 'Select the pipeline used for chunking the video. Different pipelines may use different models or strategies.',
+  videoTagsinfo:
+    'Custom tags help organize and search your videos. Add descriptive keywords separated by commas (e.g., "outdoor, interview, drone"). These tags will be used to improve search relevance and categorization.',
+  videoSummaryinfo:
+    'Provide a clear and descriptive title for your video summary.By default, it matches the video label, but you can customize it for better clarity.',
+  ChunkDurationInfo:
+    'Set the duration (in seconds) for each video chunk. This determines how long each chunk will be for summary and search.',
+  FramePerChunkInfo:
+    'Set the number of frames to sample per chunk. This controls the granularity of frame selection for each chunk.',
+  FramesOverlapInfo:
+    'Number of frames that overlap between consecutive chunks. Useful for capturing context across chunk boundaries.',
+  MultiFrameInfo:
+    'Batch size of frames used for summary creation. Higher values may improve summary quality but increase processing time.',
+  ChunkingPipelineInfo:
+    'Select the pipeline used for chunking the video. Different pipelines may use different models or strategies.',
   AudioModelsInfo: 'Select the audio model for transcription or audio analysis.',
   availableVideoTags: 'Available Video Tags',
 
@@ -183,9 +202,9 @@ export const enTranslations = {
   SummarySinglePromptEditing: 'Editing Single Reduce Prompt',
 
   OnlyStreamableMp4: 'The video file is not streamable. Please upload a streamable MP4 video.',
-  StreamableHelpText:
-    'You can use ffmpeg to convert your video to a streamable format with the following command:',
-  BatchSizeHelpText: 'Please update "Frame per chunk" or "Frames Overlap", so that their sum is not greater than the maximum supported batch size.',
+  StreamableHelpText: 'You can use ffmpeg to convert your video to a streamable format with the following command:',
+  BatchSizeHelpText:
+    'Please update "Frame per chunk" or "Frames Overlap", so that their sum is not greater than the maximum supported batch size.',
 
   IngestionSettings: 'Ingestion Settings',
   AudioSettings: 'Audio Settings',
@@ -193,9 +212,11 @@ export const enTranslations = {
   UseAudio: 'Use Audio Transcription',
   AudioModels: 'Audio Models',
   UseAudioSummary: 'Summarize audio transcript for final summary',
-  UseAudioSummaryInfo: 'When enabled, the full audio transcript is first summarized by the LLM, then the resulting audio summary is included alongside chunk captions in the final video summary. This improves accuracy for dialogue-heavy or narrated videos.',
+  UseAudioSummaryInfo:
+    'When enabled, the full audio transcript is first summarized by the LLM, then the resulting audio summary is included alongside chunk captions in the final video summary. This improves accuracy for dialogue-heavy or narrated videos.',
   ProduceFinalSummary: 'Produce final video summary',
-  ProduceFinalSummaryInfo: 'When enabled, all chunk-level frame summaries are combined using LLM map-reduce into a single comprehensive video summary. When disabled, only individual chunk summaries are kept.',
+  ProduceFinalSummaryInfo:
+    'When enabled, all chunk-level frame summaries are combined using LLM map-reduce into a single comprehensive video summary. When disabled, only individual chunk summaries are kept.',
 
   drawerTitle: 'Drawer Title',
   confirm: 'Confirm',

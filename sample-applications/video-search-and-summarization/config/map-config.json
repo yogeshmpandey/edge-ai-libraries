@@ -1,0 +1,6 @@
+{
+  "cameras": {
+    "lobby-cam": { "lat": 37.3875, "lon": -121.9636, "label": "Lobby Camera" },
+    "dock-cam": { "lat": 37.6062, "lon": -121.3321, "label": "Loading Dock" }
+  }
+}

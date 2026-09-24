@@ -3,42 +3,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
 import { SplashSummarySearch } from '../components/MainPage/SplashMux';
-import { UISlice, initialState as uiInitialState } from '../redux/ui/ui.slice';
 import { MuxFeatures } from '../redux/ui/ui.model';
+import { createTestStore as createReduxTestStore, createUiState } from './testUtils';
 
 // Mock the sub-components to focus on SplashMux logic
 vi.mock('../components/Summaries/SummaryContainer', () => ({
-  default: () => <div data-testid="summary-container">Summary Container</div>
+  default: () => <div data-testid='summary-container'>Summary Container</div>,
 }));
 
 vi.mock('../components/Search/SearchContainer', () => ({
-  default: () => <div data-testid="search-container">Search Container</div>
+  default: () => <div data-testid='search-container'>Search Container</div>,
 }));
 
 const createTestStore = (selectedMux = MuxFeatures.SUMMARY) => {
-  return configureStore({
-    reducer: {
-      ui: UISlice.reducer,
-    },
-    preloadedState: {
-      ui: {
-        ...uiInitialState,
-        selectedMux,
-        promptEditing: null, // Can be null according to the interface
-        groupByTag: false,
-        showVideoGroups: false,
-      },
-    },
-  });
+  return createReduxTestStore({ ui: createUiState({ selectedMux }) });
 };
 
 const renderWithStore = (store = createTestStore()) => {
   return render(
     <Provider store={store}>
       <SplashSummarySearch />
-    </Provider>
+    </Provider>,
   );
 };
 
@@ -49,17 +35,17 @@ describe('SplashMux Component', () => {
 
   it('should render both Summary and Search buttons', () => {
     renderWithStore();
-    
+
     expect(screen.getByLabelText('Summary')).toBeInTheDocument();
     expect(screen.getByLabelText('Search')).toBeInTheDocument();
   });
 
   it('should render Summary button as primary when SUMMARY is selected', () => {
     renderWithStore(createTestStore(MuxFeatures.SUMMARY));
-    
+
     const summaryButton = screen.getByLabelText('Summary');
     const searchButton = screen.getByLabelText('Search');
-    
+
     // Summary button should have primary style
     expect(summaryButton.closest('.cds--btn')).toHaveClass('cds--btn--primary');
     // Search button should have ghost style
@@ -68,10 +54,10 @@ describe('SplashMux Component', () => {
 
   it('should render Search button as primary when SEARCH is selected', () => {
     renderWithStore(createTestStore(MuxFeatures.SEARCH));
-    
+
     const summaryButton = screen.getByLabelText('Summary');
     const searchButton = screen.getByLabelText('Search');
-    
+
     // Search button should have primary style
     expect(searchButton.closest('.cds--btn')).toHaveClass('cds--btn--primary');
     // Summary button should have ghost style
@@ -80,26 +66,26 @@ describe('SplashMux Component', () => {
 
   it('should display SummaryMainContainer when SUMMARY is selected', () => {
     renderWithStore(createTestStore(MuxFeatures.SUMMARY));
-    
+
     expect(screen.getByTestId('summary-container')).toBeInTheDocument();
     expect(screen.queryByTestId('search-container')).not.toBeInTheDocument();
   });
 
   it('should display SearchMainContainer when SEARCH is selected', () => {
     renderWithStore(createTestStore(MuxFeatures.SEARCH));
-    
+
     expect(screen.getByTestId('search-container')).toBeInTheDocument();
     expect(screen.queryByTestId('summary-container')).not.toBeInTheDocument();
   });
 
   it('should dispatch setMux action when Summary button is clicked', () => {
     const store = createTestStore(MuxFeatures.SEARCH); // Start with search selected
-    
+
     renderWithStore(store);
-    
+
     const summaryButton = screen.getByLabelText('Summary');
     fireEvent.click(summaryButton);
-    
+
     // Check that the state has changed to SUMMARY
     const state = store.getState() as { ui: { selectedMux: MuxFeatures } };
     expect(state.ui.selectedMux).toBe(MuxFeatures.SUMMARY);
@@ -107,12 +93,12 @@ describe('SplashMux Component', () => {
 
   it('should dispatch setMux action when Search button is clicked', () => {
     const store = createTestStore(MuxFeatures.SUMMARY); // Start with summary selected
-    
+
     renderWithStore(store);
-    
+
     const searchButton = screen.getByLabelText('Search');
     fireEvent.click(searchButton);
-    
+
     // Check that the state has changed to SEARCH
     const state = store.getState() as { ui: { selectedMux: MuxFeatures } };
     expect(state.ui.selectedMux).toBe(MuxFeatures.SEARCH);
@@ -120,11 +106,11 @@ describe('SplashMux Component', () => {
 
   it('should render SuperSidebar with correct styling', () => {
     const { container } = renderWithStore();
-    
+
     // Find any div element that contains the buttons (the SuperSidebar)
     const sidebar = container.querySelector('div');
     expect(sidebar).toBeInTheDocument();
-    
+
     // Ensure it contains both buttons
     const buttons = container.querySelectorAll('button');
     expect(buttons).toHaveLength(2);
@@ -132,7 +118,7 @@ describe('SplashMux Component', () => {
 
   it('should render Sigma icon in Summary button', () => {
     renderWithStore();
-    
+
     const summaryButton = screen.getByLabelText('Summary');
     const sigmaIcon = summaryButton.querySelector('svg');
     expect(sigmaIcon).toBeInTheDocument();
@@ -140,7 +126,7 @@ describe('SplashMux Component', () => {
 
   it('should render DataAnalytics icon in Search button', () => {
     renderWithStore();
-    
+
     const searchButton = screen.getByLabelText('Search');
     const analyticsIcon = searchButton.querySelector('svg');
     expect(analyticsIcon).toBeInTheDocument();
@@ -149,23 +135,23 @@ describe('SplashMux Component', () => {
   it('should toggle between containers when buttons are clicked multiple times', () => {
     const store = createTestStore(MuxFeatures.SUMMARY);
     renderWithStore(store);
-    
+
     // Initially shows summary
     expect(screen.getByTestId('summary-container')).toBeInTheDocument();
     expect(screen.queryByTestId('search-container')).not.toBeInTheDocument();
-    
+
     // Click search button
     const searchButton = screen.getByLabelText('Search');
     fireEvent.click(searchButton);
-    
+
     // Should now show search
     expect(screen.getByTestId('search-container')).toBeInTheDocument();
     expect(screen.queryByTestId('summary-container')).not.toBeInTheDocument();
-    
+
     // Click summary button
     const summaryButton = screen.getByLabelText('Summary');
     fireEvent.click(summaryButton);
-    
+
     // Should now show summary again
     expect(screen.getByTestId('summary-container')).toBeInTheDocument();
     expect(screen.queryByTestId('search-container')).not.toBeInTheDocument();
@@ -179,10 +165,10 @@ describe('SplashMux Component', () => {
 
   it('should have proper button alignment and labeling', () => {
     renderWithStore();
-    
+
     const summaryButton = screen.getByLabelText('Summary');
     const searchButton = screen.getByLabelText('Search');
-    
+
     // Both buttons should be icon buttons with proper alignment
     expect(summaryButton).toHaveAttribute('type', 'button');
     expect(searchButton).toHaveAttribute('type', 'button');

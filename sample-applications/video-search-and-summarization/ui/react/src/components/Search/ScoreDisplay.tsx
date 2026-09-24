@@ -136,6 +136,7 @@ const format = (value: number | null | undefined, digits = 4): string =>
 export interface ScoreDisplayProps {
   relevanceScore?: number | null;
   scoreBreakdown?: ScoreBreakdown | null;
+  showDetails?: boolean;
 }
 
 /**
@@ -143,7 +144,7 @@ export interface ScoreDisplayProps {
  * pre-normalization segment score, plus an on-demand breakdown of every
  * stage the search service used to produce them.
  */
-export const ScoreDisplay: FC<ScoreDisplayProps> = ({ relevanceScore, scoreBreakdown }) => {
+export const ScoreDisplay: FC<ScoreDisplayProps> = ({ relevanceScore, scoreBreakdown, showDetails = true }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -193,7 +194,7 @@ export const ScoreDisplay: FC<ScoreDisplayProps> = ({ relevanceScore, scoreBreak
         }`}
       </PrimaryScore>
 
-      {(hasRaw || hasPeak) && (
+      {showDetails && (hasRaw || hasPeak) && (
         <SecondaryRow>
           {hasRaw && <span>{`${t('RawScoreShort', 'raw')} ${format(rawScore)}`}</span>}
           {hasRaw && hasPeak && <span aria-hidden='true'>·</span>}
@@ -214,13 +215,13 @@ export const ScoreDisplay: FC<ScoreDisplayProps> = ({ relevanceScore, scoreBreak
         </SecondaryRow>
       )}
 
-      {hasRange && (
+      {showDetails && hasRange && (
         <RangeBar role='img' aria-label={rangeLabel} title={rangeLabel}>
           <RangeMarker $position={rangePosition} />
         </RangeBar>
       )}
 
-      {open && scoreBreakdown && (
+      {showDetails && open && scoreBreakdown && (
         <Popover role='dialog' aria-label={t('ScoreBreakdownTitle', 'Score breakdown')}>
           <PopoverTitle>{t('ScoreBreakdownTitle', 'Score breakdown')}</PopoverTitle>
           <PopoverRow>

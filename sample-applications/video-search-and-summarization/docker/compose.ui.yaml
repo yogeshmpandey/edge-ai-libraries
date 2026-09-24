@@ -42,6 +42,8 @@ services:
     restart: unless-stopped
     networks:
       - vs_network
+    volumes:
+      - ${MAP_CONFIG_FILE:-../config/map-config.json}:/user/share/nginx/html/map-config.json:ro
 
   # vss-search-ui is used as Search UI in Dual UI setup.
   vss-search-ui:
@@ -68,6 +70,8 @@ services:
     restart: unless-stopped
     networks:
       - vs_network
+    volumes:
+      - ${MAP_CONFIG_FILE:-../config/map-config.json}:/user/share/nginx/html/map-config.json:ro
 
   # This UI is used when a single summary, single search or single unified UI is deployed.
   vss-singleton-ui:
@@ -96,3 +100,5 @@ services:
     restart: unless-stopped
     networks:
       - vs_network
+    volumes:
+      - ${MAP_CONFIG_FILE:-../config/map-config.json}:/user/share/nginx/html/map-config.json:ro

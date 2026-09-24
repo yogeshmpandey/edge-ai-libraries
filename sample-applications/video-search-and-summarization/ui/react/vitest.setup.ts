@@ -18,14 +18,33 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   };
 }
 
+// jsdom has no native PointerEvent, so @testing-library/dom's fireEvent.pointer*
+// falls back to a bare Event that drops clientX/clientY/pointerId. Polyfill it
+// with a thin MouseEvent subclass (used by MapView's pan/zoom) so those fields
+// survive the round trip through fireEvent.
+if (typeof globalThis.PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    public pointerId: number;
+    public pointerType: string;
+
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 0;
+      this.pointerType = params.pointerType ?? 'mouse';
+    }
+  }
+  // @ts-expect-error jsdom lacks a native PointerEvent constructor to override.
+  globalThis.PointerEvent = PointerEventPolyfill;
+}
+
 // Global axios mock to prevent network calls in all tests
 vi.mock('axios', () => ({
   default: {
-    get: vi.fn().mockResolvedValue({ 
+    get: vi.fn().mockResolvedValue({
       data: {
         videos: [],
-        length: 0
-      }
+        length: 0,
+      },
     }),
     post: vi.fn().mockResolvedValue({ data: [] }),
     put: vi.fn().mockResolvedValue({ data: [] }),
@@ -80,13 +99,13 @@ vi.mock('styled-components', () => {
         MockComponent.displayName = `styled(${Component.displayName || Component.name || 'Component'})`;
         return MockComponent;
       };
-    }
+    },
   });
 
-  return { 
+  return {
     default: mockStyled,
     keyframes: vi.fn(() => 'mock-keyframes'),
-    __esModule: true
+    __esModule: true,
   };
 });
 

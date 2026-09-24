@@ -13,11 +13,16 @@ export enum MuxFeatures {
   SUMMARY,
 }
 
+export enum ResultsView {
+  LIST = 'list',
+  GROUPS = 'groups',
+  MAP = 'map',
+}
+
 export interface UISliceState {
   promptEditing: PromptEditing | null;
   selectedMux: MuxFeatures;
-  groupByTag: boolean;
-  showVideoGroups: boolean;
+  resultsView: ResultsView;
 }
 export interface OpenPromptModal {
   heading: string;

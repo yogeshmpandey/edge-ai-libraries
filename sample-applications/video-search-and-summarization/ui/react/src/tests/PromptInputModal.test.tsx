@@ -5,30 +5,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { I18nextProvider } from 'react-i18next';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
-
 import PromptInputModal from '../components/Modals/PromptInputModal.tsx';
 import i18n from '../utils/i18n';
-import { UIReducer, initialState as uiInitialState } from '../redux/ui/ui.slice.ts';
 import { PromptEditing } from '../redux/ui/ui.model.ts';
-
+import { createTestStore, createUiState } from './testUtils.ts';
 
 // Mock i18next// Create mock store
 const createMockStore = (promptEditing: PromptEditing | null = null) => {
-  return configureStore({
-    reducer: {
-      ui: UIReducer,
-    },
-    preloadedState: {
-      ui: {
-        ...uiInitialState,
-        promptEditing,
-        selectedMux: 1,
-        groupByTag: false,
-        showVideoGroups: false,
-      },
-    },
-  });
+  return createTestStore({ ui: createUiState({ promptEditing }) });
 };
 
 describe('PromptInputModal Component', () => {
@@ -50,7 +34,7 @@ describe('PromptInputModal Component', () => {
   describe('Modal Visibility', () => {
     it('should not render modal when promptEditing is null', () => {
       renderComponent(null);
-      
+
       // Modal should not be visible - checking if it doesn't have open attribute
       const modal = screen.queryByRole('dialog');
       expect(modal).toHaveAttribute('aria-modal', 'true');
@@ -179,7 +163,7 @@ describe('PromptInputModal Component', () => {
 
       const textarea = screen.getByRole('textbox');
       const newText = 'New prompt text';
-      
+
       fireEvent.change(textarea, { target: { value: newText } });
 
       await waitFor(() => {
@@ -215,7 +199,7 @@ describe('PromptInputModal Component', () => {
         submitValue: null,
         vars: [],
       });
-      
+
       render(
         <Provider store={store}>
           <I18nextProvider i18n={i18n}>
@@ -240,7 +224,7 @@ describe('PromptInputModal Component', () => {
         submitValue: null,
         vars: ['%name%'],
       });
-      
+
       render(
         <Provider store={store}>
           <I18nextProvider i18n={i18n}>
@@ -302,7 +286,7 @@ describe('PromptInputModal Component', () => {
         submitValue: null,
         vars: [],
       });
-      
+
       render(
         <Provider store={store}>
           <I18nextProvider i18n={i18n}>

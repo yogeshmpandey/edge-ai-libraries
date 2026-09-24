@@ -4,13 +4,13 @@ import { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { useAppSelector } from '../../redux/store';
-import { Video } from '../../redux/video/video';
-import { ScoreBreakdown, SearchResult } from '../../redux/search/search';
-import { videosSelector } from '../../redux/video/videoSlice';
 import { SearchSelector } from '../../redux/search/searchSlice';
-import { ASSETS_ENDPOINT } from '../../config';
-import { resolveSearchResultVideoUrl, resolveVideoUrl } from '../../redux/video/videoUrl';
-import { ScoreDisplay } from '../Search/ScoreDisplay';
+import { VideoTile } from '../../redux/search/VideoTile';
+import {
+  getSearchResultTags,
+  getSearchResultVideoId,
+  groupSearchResultIndicesByTag,
+} from '../../redux/search/searchResult';
 
 const VideoGroupsContainer = styled.div`
   padding: 1rem;
@@ -61,39 +61,31 @@ const VideoGrid = styled.div`
 `;
 
 const VideoCard = styled.div`
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  .video-tile {
+    width: 100%;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+  }
 
-  &:hover {
+  .video-tile:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
-`;
 
-const VideoPlayer = styled.video`
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  background-color: var(--color-gray-2);
-`;
+  .video-tile video,
+  .video-tile .video-placeholder {
+    height: 200px;
+    object-fit: cover;
+  }
 
-const VideoPlaceholder = styled.div`
-  width: 100%;
-  height: 200px;
-  background-color: var(--color-gray-2);
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-gray-6);
-  font-size: 0.875rem;
+  .video-tile .relevance {
+    padding: 0.75rem 1rem 0.25rem;
+  }
 `;
 
 const VideoTag = styled.span`
@@ -105,24 +97,11 @@ const VideoTag = styled.span`
   font-weight: 400;
 `;
 
-const RelevanceScore = styled.div`
-  color: var(--color-text-primary);
-  padding: 0.25rem 0.5rem;
-  margin-right: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-`;
-
-const VideoCardWrapper = styled.div`
-  position: relative;
-`;
-
-const BottomInfo = styled.div`
+const VideoTags = styled.div`
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-top: 0.5rem;
+  padding: 0.25rem 1rem 1rem;
 `;
 
 const EmptyState = styled.div`
@@ -145,86 +124,10 @@ const TAG_COLORS = [
   '#F5F5F5', // Light Grey
 ];
 
-interface TagGroup {
-  tag: string;
-  videos: Video[];
-  color: string;
-}
-
 export const VideoGroupsView: FC = () => {
   const { t } = useTranslation();
-  const { getVideoUrl } = useAppSelector(videosSelector);
   const { selectedResults } = useAppSelector(SearchSelector);
-
-  // Build a map of relevance scores from search results
-  const videoRelevanceMap = useMemo(() => {
-    const map = new Map<string, number>();
-    selectedResults?.forEach((result: SearchResult) => {
-      const vid = result.metadata?.video_id;
-      const score = result.metadata?.relevance_score;
-      if (vid && typeof score === 'number') map.set(vid, score);
-    });
-    return map;
-  }, [selectedResults]);
-
-  // Keep the full score breakdown so raw scores can be shown alongside the
-  // normalized relevance score.
-  const videoScoreBreakdownMap = useMemo(() => {
-    const map = new Map<string, ScoreBreakdown>();
-    selectedResults?.forEach((result: SearchResult) => {
-      const vid = result.metadata?.video_id;
-      const breakdown = result.metadata?.score_breakdown;
-      if (vid && breakdown && !map.has(vid)) map.set(vid, breakdown);
-    });
-    return map;
-  }, [selectedResults]);
-
-  // Convert selected results into minimal Video objects for grouping
-  const searchVideos: Video[] = useMemo(() => {
-    if (!selectedResults || selectedResults.length === 0) return [];
-    return selectedResults
-      .map((result: SearchResult) => {
-        const meta: any = result.metadata ?? {};
-        const vid = meta.video_id || meta.id;
-        if (!vid) return null;
-
-        // Normalize tags: can be array or comma-separated string or array of objects
-        let tagsArrRaw: any[] = [];
-        if (Array.isArray(meta.tags)) {
-          tagsArrRaw = meta.tags;
-        } else if (typeof meta.tags === 'string' && meta.tags.trim()) {
-          tagsArrRaw = meta.tags.split(',').map((s: string) => s.trim()).filter(Boolean);
-        }
-
-        // Convert any tag entry into a safe string
-        const tagsArr: string[] = tagsArrRaw
-          .map((t) => {
-            if (typeof t === 'string') return t.trim();
-            if (t && typeof t === 'object') {
-              const tagValue = t.tag ?? t.name ?? t.label ?? '';
-              return typeof tagValue === 'string' ? tagValue.trim() : '';
-            }
-            return String(t || '').trim();
-          })
-          .filter((s) => s && s.length > 0); // More strict filtering
-
-        return {
-          videoId: vid,
-          name: meta.name ?? meta.title ?? vid,
-          // Fall back to the object store directly. The dataprep download URLs in
-          // metadata are not browser-addressable and do not support ranges.
-          url:
-            resolveVideoUrl(result.video, ASSETS_ENDPOINT) ||
-            resolveSearchResultVideoUrl(meta, ASSETS_ENDPOINT) ||
-            '',
-          tags: tagsArr,
-          createdAt: (meta.date_time as string) ?? (meta.date as string) ?? '',
-          updatedAt: '',
-          dataStore: result.video?.dataStore,
-        } as Video;
-      })
-        .filter((v: Video | null): v is Video => v !== null);
-  }, [selectedResults]);
+  const tagGroups = useMemo(() => groupSearchResultIndicesByTag(selectedResults), [selectedResults]);
 
   // If no search results, show a helpful empty state
   if (!selectedResults || selectedResults.length === 0) {
@@ -238,47 +141,6 @@ export const VideoGroupsView: FC = () => {
       </VideoGroupsContainer>
     );
   }
-
-  // Group the converted videos by tag
-  const tagGroups: TagGroup[] = useMemo(() => {
-    const groups = new Map<string, Video[]>();
-    
-    searchVideos.forEach((video) => {
-      const tags = Array.isArray(video.tags) ? video.tags : [];
-      // Filter out any empty or whitespace-only tags
-      const validTags = tags.filter((tag) => tag && typeof tag === 'string' && tag.trim().length > 0);
-      
-      if (validTags.length === 0) {
-        // Video has no valid tags - add to Untagged group
-        if (!groups.has('Untagged')) groups.set('Untagged', []);
-        const untaggedVideos = groups.get('Untagged')!;
-        if (!untaggedVideos.some((existing) => existing.videoId === video.videoId)) {
-          untaggedVideos.push(video);
-        }
-      } else {
-        // Video has valid tags - add to each tag group
-        validTags.forEach((tag) => {
-          const trimmedTag = tag.trim();
-          if (!groups.has(trimmedTag)) groups.set(trimmedTag, []);
-          const tagVideos = groups.get(trimmedTag)!;
-          if (!tagVideos.some((existing) => existing.videoId === video.videoId)) {
-            tagVideos.push(video);
-          }
-        });
-      }
-    });
-
-    const arr = Array.from(groups.entries()).map(([tag, vids], i) => ({
-      tag,
-      videos: vids.sort((a, b) => {
-        const sa = videoRelevanceMap.get(a.videoId) ?? 0;
-        const sb = videoRelevanceMap.get(b.videoId) ?? 0;
-        return sb - sa; // descending
-      }),
-      color: TAG_COLORS[i % TAG_COLORS.length],
-    }));
-    return arr;
-  }, [searchVideos, videoRelevanceMap]);
 
   if (tagGroups.length === 0) {
     return (
@@ -296,50 +158,28 @@ export const VideoGroupsView: FC = () => {
     <VideoGroupsContainer>
       <GroupHeader>{t('VideoGroups', 'Video Groups by Tags')}</GroupHeader>
 
-      {tagGroups.map((group) => (
-        <TagGroup key={group.tag} $backgroundColor={group.color}>
+      {tagGroups.map((group, groupIndex) => (
+        <TagGroup key={group.tag} $backgroundColor={TAG_COLORS[groupIndex % TAG_COLORS.length]}>
           <TagHeader>
             {group.tag}
-            <TagBadge>{group.videos.length} videos</TagBadge>
+            <TagBadge>{group.resultIndices.length} videos</TagBadge>
           </TagHeader>
 
           <VideoGrid>
-            {group.videos.map((video) => {
-              const reduxVideoUrl = getVideoUrl ? getVideoUrl(video.videoId) : null;
-              const videoUrl = reduxVideoUrl || video.url;
-              const relevanceScore = videoRelevanceMap.get(video.videoId) ?? 0;
-              const scoreBreakdown = videoScoreBreakdownMap.get(video.videoId);
+            {group.resultIndices.map((resultIndex) => {
+              const result = selectedResults[resultIndex];
+              const videoId = getSearchResultVideoId(result) ?? String(resultIndex);
+              const tags = getSearchResultTags(result);
 
               return (
-                <VideoCard key={`${group.tag}-${video.videoId}`}>
-                  <VideoCardWrapper>
-                    {videoUrl ? (
-                      <VideoPlayer controls preload="metadata">
-                        <source src={videoUrl} type="video/mp4" />
-                        Your browser does not support the video tag.
-                      </VideoPlayer>
-                    ) : (
-                      <VideoPlaceholder>Video not available</VideoPlaceholder>
-                    )}
-                  </VideoCardWrapper>
-
-                  <BottomInfo>
-                    <RelevanceScore>
-                      <ScoreDisplay relevanceScore={relevanceScore} scoreBreakdown={scoreBreakdown} />
-                    </RelevanceScore>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                      {Array.isArray(video.tags) && video.tags.map((rawTag, idx) => {
-                        const tAny: any = rawTag;
-                        const displayTag = typeof rawTag === 'string'
-                          ? rawTag
-                          : tAny && typeof tAny === 'object'
-                            ? tAny.tag ?? tAny.name ?? tAny.label ?? JSON.stringify(tAny)
-                            : String(rawTag);
-                        const key = `${video.videoId}-tag-${idx}-${displayTag}`;
-                        return <VideoTag key={key}>{displayTag}</VideoTag>;
-                      })}
-                    </div>
-                  </BottomInfo>
+                <VideoCard key={`${group.tag}-${videoId}`}>
+                  <VideoTile resultIndex={resultIndex}>
+                    <VideoTags>
+                      {tags.map((tag) => (
+                        <VideoTag key={`${videoId}-${tag}`}>{tag}</VideoTag>
+                      ))}
+                    </VideoTags>
+                  </VideoTile>
                 </VideoCard>
               );
             })}

@@ -1,229 +1,114 @@
 // Copyright (C) 2025 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+
+import { fireEvent, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
-import i18n from '../utils/i18n';
+import { Provider } from 'react-redux';
+import { describe, expect, it } from 'vitest';
 import { VideoTile, VideoTileProps } from '../redux/search/VideoTile';
-import { SearchSlice } from '../redux/search/searchSlice';
-import { SearchQueryStatus } from '../redux/search/search';
+import { SearchResult } from '../redux/search/search';
+import { Video } from '../redux/video/video';
+import i18n from '../utils/i18n';
+import { createSearchQuery, createSearchResult, createSearchState, createTestStore } from './testUtils';
 
-// Mock the useAppSelector hook
-const mockVideoSelector = {
-  getVideoUrl: vi.fn()
-};
-
-// Mock data
-const mockSearchResults = [
-  {
-    id: 'result-1',
-    page_content: 'Test video content 1',
-    type: 'video',
-    metadata: {
-      video_id: 'video-1',
-      video_url: 'http://localhost/videos/video-1.mp4',
-      timestamp: 120,
-      relevance_score: 0.95
-    } as any,
-    video: {
-      dataStore: {
-        bucket: 'test-bucket'
-      },
-      url: 'video-1.mp4'
-    } as any
-  },
-  {
-    id: 'result-2', 
-    page_content: 'Test video content 2',
-    type: 'video',
-    metadata: {
-      video_id: 'video-2',
-      video_url: 'http://localhost/videos/video-2.mp4',
-      timestamp: 180,
-      relevance_score: 0.87
-    } as any,
-    video: {
-      dataStore: {
-        bucket: 'test-bucket'
-      },
-      url: 'video-2.mp4'
-    } as any
-  }
-];
-
-// Create mock store
-const createMockStore = (selectedResults = mockSearchResults) => {
-  return configureStore({
-    reducer: {
-      search: SearchSlice.reducer,
-    },
-    preloadedState: {
-      search: {
-        searchQueries: [{
-          queryId: 'query-1',
-          query: 'test query',
-          topK: 10,
-          results: selectedResults,
-          watch: false,
-          queryStatus: SearchQueryStatus.IDLE,
-          tags: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }],
-        selectedQuery: 'query-1',
-        suggestedTags: [],
-        triggerLoad: false,
-        unreads: []
-      }
-    },
-  });
-};
-
-describe('VideoTile Component', () => {
-  let store: any;
-  
-  beforeEach(() => {
-    store = createMockStore();
-    vi.clearAllMocks();
-    mockVideoSelector.getVideoUrl.mockReturnValue('http://example.com/video.mp4');
+const makeStore = (results: SearchResult[], videos: Video[] = []) =>
+  createTestStore({
+    search: createSearchState({
+      searchQueries: [createSearchQuery({ results, topK: Math.max(results.length, 1) })],
+      selectedQuery: 'query-1',
+    }),
+    videos: { videos },
   });
 
-  const renderVideoTile = (props: VideoTileProps) => {
-    return render(
-      <Provider store={store}>
-        <I18nextProvider i18n={i18n}>
-          <VideoTile {...props} />
-        </I18nextProvider>
-      </Provider>
-    );
-  };
+const renderTile = (props: VideoTileProps, results: SearchResult[], videos: Video[] = []) =>
+  render(
+    <Provider store={makeStore(results, videos)}>
+      <I18nextProvider i18n={i18n}>
+        <VideoTile {...props} />
+      </I18nextProvider>
+    </Provider>,
+  );
 
-  it('should render video tile with basic props', () => {
-    const { container } = renderVideoTile({ resultIndex: 0 });
-    
-    expect(container).toBeTruthy();
-    // Component may not render video element if no search result is found
-    const videoElement = container.querySelector('video');
-    if (videoElement) {
-      expect(videoElement).toBeInTheDocument();
-    }
+describe('VideoTile', () => {
+  it('renders native playback, score details, and composed children', () => {
+    const result = createSearchResult({ metadata: { relevance_score: 0.95 } });
+    const { container } = renderTile({ resultIndex: 0, children: <span>extra content</span> }, [result]);
+
+    expect(container.querySelector('.video-tile')).not.toBeNull();
+    expect(container.querySelector('video[controls]')).not.toBeNull();
+    expect(screen.getByText('Relevance Score: 0.950')).toBeInTheDocument();
+    expect(screen.getByText('extra content')).toBeInTheDocument();
   });
 
-  it('should render video tile with relevance score', () => {
-    const { container } = renderVideoTile({ 
-      resultIndex: 0
-    });
-    
-    expect(container).toBeTruthy();
-  });
-
-  it('should render video tile with zero relevance score', () => {
-    const { container } = renderVideoTile({ 
-      resultIndex: 1
-    });
-    
-    expect(container).toBeTruthy();
-  });
-
-  it('should set video current time when startTime is provided', () => {
-    const { container } = renderVideoTile({ 
-      resultIndex: 0
-    });
-    
-    expect(container).toBeTruthy();
-  });
-
-  it('should handle missing video URL gracefully', () => {
-    // Create store with search result that has no video data
-    const storeWithMissingVideo = configureStore({
-      reducer: {
-        search: SearchSlice.reducer,
-      },
-      preloadedState: {
-        search: {
-          searchQueries: [{
-            queryId: 'query-1',
-            query: 'test',
-            topK: 10,
-            results: [{ id: 'result-1', metadata: {}, video: null, page_content: '', type: '' }] as any,
-            watch: false,
-            queryStatus: SearchQueryStatus.IDLE,
-            tags: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }],
-          selectedQuery: 'query-1',
-          suggestedTags: [],
-          triggerLoad: false,
-          unreads: []
-        }
+  it('can hide the raw, peak, and score breakdown controls', () => {
+    const result = createSearchResult({
+      metadata: {
+        score_breakdown: { score: 0.9, raw_score: 0.5, max_frame_score: 0.4 },
       },
     });
-    
-    const { container } = render(
-      <Provider store={storeWithMissingVideo}>
-        <I18nextProvider i18n={i18n}>
-          <VideoTile resultIndex={0} />
-        </I18nextProvider>
-      </Provider>
-    );
-    
-    expect(container).toBeTruthy();
+
+    renderTile({ resultIndex: 0, showScoreDetails: false }, [result]);
+
+    expect(screen.queryByText(/^raw /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^peak /)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Score breakdown' })).not.toBeInTheDocument();
   });
 
-  it('should handle undefined video URL', () => {
-    const { container } = renderVideoTile({ resultIndex: 1 });
-    
-    expect(container).toBeTruthy();
-  });
-
-  it('should render with all props provided', () => {
-    const { container } = renderVideoTile({ 
-      resultIndex: 0
+  it('prefers the Redux video catalog over result and metadata URLs', () => {
+    const result = createSearchResult({
+      metadata: { video_id: 'video-1', video_rel_url: '/metadata/video.mp4' },
+      video: { videoId: 'video-1', url: '/result/video.mp4', dataStore: undefined },
     });
-    
-    expect(container).toBeTruthy();
+    const catalogVideo: Video = {
+      videoId: 'video-1',
+      name: 'Catalog video',
+      url: '/catalog/video.mp4',
+      tags: [],
+      createdAt: '',
+      updatedAt: '',
+    };
+
+    const { container } = renderTile({ resultIndex: 0 }, [result], [catalogVideo]);
+
+    expect(container.querySelector('source')).toHaveAttribute('src', '/catalog/video.mp4');
   });
 
-  it('should call getVideoUrl with correct videoId', () => {
-    const { container } = renderVideoTile({ resultIndex: 0 });
-    
-    expect(container).toBeTruthy();
-  });
-
-  it('should display video tile CSS class', () => {
-    const { container } = renderVideoTile({ resultIndex: 0 });
-    
-    expect(container).toBeTruthy();
-  });
-
-  it('should render video with controls enabled', () => {
-    const { container } = renderVideoTile({ resultIndex: 0 });
-    
-    // Component may not render video element if no search result is found
-    const videoElement = container.querySelector('video');
-    if (videoElement) {
-      expect(videoElement).toBeInTheDocument();
-    } else {
-      expect(container).toBeTruthy();
-    }
-  });
-
-  it('should handle large relevance numbers', () => {
-    const { container } = renderVideoTile({ 
-      resultIndex: 0
+  it('uses the metadata URL when neither catalog nor enriched video resolves', () => {
+    const result = createSearchResult({
+      metadata: { video_rel_url: '/datastore/video-1/source.mp4' },
+      video: { url: '', dataStore: undefined },
     });
-    
-    expect(container).toBeTruthy();
+
+    const { container } = renderTile({ resultIndex: 0 }, [result]);
+
+    expect(container.querySelector('source')?.getAttribute('src')).toContain('/datastore/video-1/source.mp4');
   });
 
-  it('should handle negative relevance numbers', () => {
-    const { container } = renderVideoTile({ 
-      resultIndex: 1
+  it('shows a placeholder when no playable URL can be resolved', () => {
+    const result = createSearchResult({
+      metadata: { bucket_name: '', video_id: '', id: '', video_rel_url: '', video_url: '' },
+      video: { videoId: '', url: '', dataStore: undefined },
     });
-    
-    expect(container).toBeTruthy();
+
+    const { container } = renderTile({ resultIndex: 0 }, [result]);
+
+    expect(container.querySelector('video')).toBeNull();
+    expect(screen.getByText('Video not available')).toBeInTheDocument();
+  });
+
+  it('seeks to the result timestamp after video metadata loads', () => {
+    const result = createSearchResult({ metadata: { timestamp: 120 } });
+    const { container } = renderTile({ resultIndex: 0 }, [result]);
+    const video = container.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { configurable: true, value: 200 });
+
+    fireEvent.loadedMetadata(video);
+
+    expect(video.currentTime).toBe(120);
+  });
+
+  it('renders nothing when the requested result index does not exist', () => {
+    const { container } = renderTile({ resultIndex: 4 }, [createSearchResult()]);
+    expect(container).toBeEmptyDOMElement();
   });
 });

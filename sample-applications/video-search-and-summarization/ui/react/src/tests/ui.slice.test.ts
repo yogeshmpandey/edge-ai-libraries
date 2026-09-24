@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from 'vitest';
 import { UIActions, initialState, uiSelector, UIReducer } from '../redux/ui/ui.slice';
-import { UISliceState, OpenPromptModal, PromptEditing } from '../redux/ui/ui.model';
+import { UISliceState, OpenPromptModal, PromptEditing, ResultsView } from '../redux/ui/ui.model';
+import { createTestState, createUiState } from './testUtils';
 
 describe('UISlice test suite', () => {
   describe('Initial State', () => {
     it('should return the correct initial state', () => {
       const state = UIReducer(undefined, { type: '@@INIT' });
-      
+
       expect(state).toEqual(initialState);
       expect(state.promptEditing).toBeNull();
     });
@@ -17,8 +18,7 @@ describe('UISlice test suite', () => {
       expect(initialState).toEqual({
         promptEditing: null,
         selectedMux: 1,
-        groupByTag: false,
-        showVideoGroups: false,
+        resultsView: ResultsView.LIST,
       });
     });
   });
@@ -110,7 +110,7 @@ describe('UISlice test suite', () => {
       });
 
       it('should overwrite existing promptEditing state', () => {
-        const initialPromptState: UISliceState = {
+        const initialPromptState = createUiState({
           promptEditing: {
             open: 'old-token',
             heading: 'Old Heading',
@@ -118,10 +118,7 @@ describe('UISlice test suite', () => {
             submitValue: 'old-submit-value',
             vars: ['%oldVar%'],
           },
-          selectedMux: 1,
-          groupByTag: false,
-          showVideoGroups: false,
-        };
+        });
 
         const newPromptPayload: OpenPromptModal = {
           heading: 'New Heading',
@@ -141,7 +138,7 @@ describe('UISlice test suite', () => {
 
     describe('submitPromptModal', () => {
       it('should update submitValue when promptEditing exists', () => {
-        const initialPromptState: UISliceState = {
+        const initialPromptState = createUiState({
           promptEditing: {
             open: 'test-token',
             heading: 'Test Heading',
@@ -149,10 +146,7 @@ describe('UISlice test suite', () => {
             submitValue: null,
             vars: [],
           },
-          selectedMux: 1,
-          groupByTag: false,
-          showVideoGroups: false,
-        };
+        });
 
         const state = UIReducer(initialPromptState, UIActions.submitPromptModal('submitted value'));
 
@@ -171,7 +165,7 @@ describe('UISlice test suite', () => {
       });
 
       it('should overwrite existing submitValue', () => {
-        const initialPromptState: UISliceState = {
+        const initialPromptState = createUiState({
           promptEditing: {
             open: 'test-token',
             heading: 'Test Heading',
@@ -179,10 +173,7 @@ describe('UISlice test suite', () => {
             submitValue: 'old value',
             vars: [],
           },
-          selectedMux: 1,
-          groupByTag: false,
-          showVideoGroups: false,
-        };
+        });
 
         const state = UIReducer(initialPromptState, UIActions.submitPromptModal('new value'));
 
@@ -192,7 +183,7 @@ describe('UISlice test suite', () => {
 
     describe('closePrompt', () => {
       it('should set promptEditing to null when closing', () => {
-        const initialPromptState: UISliceState = {
+        const initialPromptState = createUiState({
           promptEditing: {
             open: 'test-token',
             heading: 'Test Heading',
@@ -200,10 +191,7 @@ describe('UISlice test suite', () => {
             submitValue: 'submit value',
             vars: ['%var%'],
           },
-          selectedMux: 1,
-          groupByTag: false,
-          showVideoGroups: false,
-        };
+        });
 
         const state = UIReducer(initialPromptState, UIActions.closePrompt());
 
@@ -221,10 +209,8 @@ describe('UISlice test suite', () => {
   describe('Selectors', () => {
     describe('uiSelector', () => {
       it('should return default values when promptEditing is null', () => {
-        const mockState = {
-          ui: initialState,
-        } as any;
-        
+        const mockState = createTestState({ ui: initialState });
+
         const selectedData = uiSelector(mockState);
 
         expect(selectedData).toEqual({
@@ -234,8 +220,7 @@ describe('UISlice test suite', () => {
           modalPrompt: '',
           modalPromptVars: [],
           selectedMux: 1,
-          groupByTag: false,
-          showVideoGroups: false,
+          resultsView: ResultsView.LIST,
         });
       });
 
@@ -248,15 +233,8 @@ describe('UISlice test suite', () => {
           vars: ['%var1%', '%var2%'],
         };
 
-        const mockState = {
-          ui: { 
-            promptEditing: promptEditingState,
-            selectedMux: 1,
-            groupByTag: false,
-            showVideoGroups: false,
-          },
-        } as any;
-        
+        const mockState = createTestState({ ui: createUiState({ promptEditing: promptEditingState }) });
+
         const selectedData = uiSelector(mockState);
 
         expect(selectedData).toEqual({
@@ -266,8 +244,7 @@ describe('UISlice test suite', () => {
           modalPrompt: 'Selector prompt with %var1% and %var2%',
           modalPromptVars: ['%var1%', '%var2%'],
           selectedMux: 1,
-          groupByTag: false,
-          showVideoGroups: false,
+          resultsView: ResultsView.LIST,
         });
       });
 
@@ -280,15 +257,8 @@ describe('UISlice test suite', () => {
           vars: [],
         };
 
-        const mockState = {
-          ui: { 
-            promptEditing: promptEditingState,
-            selectedMux: 1,
-            groupByTag: false,
-            showVideoGroups: false,
-          },
-        } as any;
-        
+        const mockState = createTestState({ ui: createUiState({ promptEditing: promptEditingState }) });
+
         const selectedData = uiSelector(mockState);
 
         expect(selectedData).toEqual({
@@ -298,8 +268,7 @@ describe('UISlice test suite', () => {
           modalPrompt: 'Partial prompt',
           modalPromptVars: [],
           selectedMux: 1,
-          groupByTag: false,
-          showVideoGroups: false,
+          resultsView: ResultsView.LIST,
         });
       });
     });
@@ -332,20 +301,26 @@ describe('UISlice test suite', () => {
       let state: UISliceState = initialState;
 
       // First modal
-      state = UIReducer(state, UIActions.openPromptModal({
-        heading: 'First Modal',
-        prompt: 'First %var%',
-        openToken: 'first-token',
-      }));
-      
+      state = UIReducer(
+        state,
+        UIActions.openPromptModal({
+          heading: 'First Modal',
+          prompt: 'First %var%',
+          openToken: 'first-token',
+        }),
+      );
+
       expect(state.promptEditing?.open).toBe('first-token');
 
       // Second modal (should overwrite)
-      state = UIReducer(state, UIActions.openPromptModal({
-        heading: 'Second Modal',
-        prompt: 'Second %other%',
-        openToken: 'second-token',
-      }));
+      state = UIReducer(
+        state,
+        UIActions.openPromptModal({
+          heading: 'Second Modal',
+          prompt: 'Second %other%',
+          openToken: 'second-token',
+        }),
+      );
 
       expect(state.promptEditing?.open).toBe('second-token');
       expect(state.promptEditing?.vars).toEqual(['%other%']);
@@ -358,37 +333,41 @@ describe('UISlice test suite', () => {
 
   describe('Edge Cases', () => {
     it('should handle complex variable patterns', () => {
-      const state = UIReducer(initialState, UIActions.openPromptModal({
-        heading: 'Complex Variables',
-        prompt: 'Mix: %simple% %with_underscore% %withNumbers123% %MixedCase%',
-        openToken: 'complex-token',
-      }));
+      const state = UIReducer(
+        initialState,
+        UIActions.openPromptModal({
+          heading: 'Complex Variables',
+          prompt: 'Mix: %simple% %with_underscore% %withNumbers123% %MixedCase%',
+          openToken: 'complex-token',
+        }),
+      );
 
-      expect(state.promptEditing?.vars).toEqual([
-        '%simple%', 
-        '%with_underscore%', 
-        '%withNumbers123%', 
-        '%MixedCase%'
-      ]);
+      expect(state.promptEditing?.vars).toEqual(['%simple%', '%with_underscore%', '%withNumbers123%', '%MixedCase%']);
     });
 
     it('should handle malformed variable patterns', () => {
-      const state = UIReducer(initialState, UIActions.openPromptModal({
-        heading: 'Malformed Variables',
-        prompt: 'Invalid: %incomplete %no-dashes% %spaces in var% % %',
-        openToken: 'malformed-token',
-      }));
+      const state = UIReducer(
+        initialState,
+        UIActions.openPromptModal({
+          heading: 'Malformed Variables',
+          prompt: 'Invalid: %incomplete %no-dashes% %spaces in var% % %',
+          openToken: 'malformed-token',
+        }),
+      );
 
       // Should only match valid patterns (alphanumeric + underscore)
       expect(state.promptEditing?.vars.length).toBeGreaterThanOrEqual(0);
     });
 
     it('should handle prompt with null/undefined values', () => {
-      const state = UIReducer(initialState, UIActions.openPromptModal({
-        heading: 'Null Test',
-        prompt: null as any,
-        openToken: 'null-token',
-      }));
+      const state = UIReducer(
+        initialState,
+        UIActions.openPromptModal({
+          heading: 'Null Test',
+          prompt: null as unknown as string,
+          openToken: 'null-token',
+        }),
+      );
 
       expect(state.promptEditing?.prompt).toBeNull();
       expect(state.promptEditing?.vars).toEqual([]);
@@ -421,6 +400,45 @@ describe('UISlice test suite', () => {
 
       expect(action.type).toBe('ui/closePrompt');
       expect(action.payload).toBeUndefined();
+    });
+
+    it('should create setResultsView action correctly', () => {
+      const action = UIActions.setResultsView(ResultsView.MAP);
+
+      expect(action.type).toBe('ui/setResultsView');
+      expect(action.payload).toBe(ResultsView.MAP);
+    });
+  });
+
+  describe('setResultsView reducer', () => {
+    it('should switch to the Map view', () => {
+      const state = UIReducer(initialState, UIActions.setResultsView(ResultsView.MAP));
+      expect(state.resultsView).toBe(ResultsView.MAP);
+    });
+
+    it('should switch to the Groups view', () => {
+      const state = UIReducer(initialState, UIActions.setResultsView(ResultsView.GROUPS));
+      expect(state.resultsView).toBe(ResultsView.GROUPS);
+    });
+
+    it('should switch back to the List view', () => {
+      const mapState = createUiState({ resultsView: ResultsView.MAP });
+      const state = UIReducer(mapState, UIActions.setResultsView(ResultsView.LIST));
+      expect(state.resultsView).toBe(ResultsView.LIST);
+    });
+  });
+
+  describe('SearchAdd extraReducers', () => {
+    it('should reset resultsView to LIST on SearchAdd.pending', () => {
+      const mapState = createUiState({ resultsView: ResultsView.MAP });
+      const state = UIReducer(mapState, { type: 'search/add/pending' });
+      expect(state.resultsView).toBe(ResultsView.LIST);
+    });
+
+    it('should reset resultsView to LIST on SearchAdd.fulfilled', () => {
+      const groupsState = createUiState({ resultsView: ResultsView.GROUPS });
+      const state = UIReducer(groupsState, { type: 'search/add/fulfilled' });
+      expect(state.resultsView).toBe(ResultsView.LIST);
     });
   });
 });
